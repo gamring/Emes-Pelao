@@ -65,8 +65,8 @@
     ];
 
     const DEVICES = [
-      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Conductor 1', role: 'Conductor (50% Beneficio)' },
-      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Dueño del Camión', role: 'Dueño (50% Beneficio)' },
+      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Conductor 1', role: 'Conductor (50% Beneficio Total)' },
+      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Dueño del Camión', role: 'Dueño (50% Beneficio Total)' },
       { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total & Facturación' },
       { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos' }
     ];
@@ -95,28 +95,30 @@
 
       const monthlyMovements = useMemo(() => movements.filter(m => m.date && m.date.startsWith(selectedMonth)), [movements, selectedMonth]);
 
+      // Métricas globales y reparto exacto del 50% de la Utilidad Neta Total
       const metrics = useMemo(() => {
         let totalFreights = 0, totalExpenses = 0, pendingPayments = 0;
-        let driver1Freights = 0, driver1Expenses = 0;
 
         monthlyMovements.forEach(m => {
           if (m.type === 'freight') {
             totalFreights += Number(m.amount) || 0;
-            if (m.driverName?.includes('Conductor 1')) driver1Freights += Number(m.amount) || 0;
-            if (m.paymentStatus === 'Pendiente' || m.invoicingStatus === 'Facturado (Pendiente)') pendingPayments += Number(m.amount) || 0;
+            if (m.paymentStatus === 'Pendiente' || m.invoicingStatus === 'Facturado (Pendiente)') {
+              pendingPayments += Number(m.amount) || 0;
+            }
           } else {
             totalExpenses += Number(m.amount) || 0;
-            if (m.driverName?.includes('Conductor 1')) driver1Expenses += Number(m.amount) || 0;
           }
         });
 
         const netTotal = totalFreights - totalExpenses;
-        const driver1Net = driver1Freights - driver1Expenses;
+        const halfShare = netTotal > 0 ? netTotal * 0.5 : 0;
 
         return {
-          totalFreights, totalExpenses, netTotal,
-          ownerShare: netTotal > 0 ? netTotal * 0.5 : 0,
-          driver1Share: driver1Net > 0 ? driver1Net * 0.5 : 0,
+          totalFreights,
+          totalExpenses,
+          netTotal,
+          ownerShare: halfShare,   // 50% para el Dueño
+          driver1Share: halfShare, // 50% para Conductor 1
           pendingPayments
         };
       }, [monthlyMovements]);
@@ -131,7 +133,7 @@
                 <div className="p-2 bg-emerald-600 rounded-xl"><Truck /></div>
                 <div>
                   <h1 className="font-bold text-lg">FletesSync</h1>
-                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">4 Dispositivos & Reparto 50%</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Dispositivo 1 y 2: Reparto 50% de Utilidad Total</p>
                 </div>
               </div>
 
@@ -150,7 +152,7 @@
             <div className="mb-6 bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Clock />
-                <span className="text-xs text-slate-400">Mes:</span>
+                <span className="text-xs text-slate-400">Mes de Control:</span>
                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer" />
               </div>
             </div>
@@ -189,23 +191,38 @@
                     <p className="text-xl font-bold text-rose-400 mt-1">{formatMoney(metrics.totalExpenses)}</p>
                   </div>
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-400">Utilidad Neta</span>
+                    <span className="text-xs text-slate-400">Utilidad Neta Total</span>
                     <p className="text-xl font-bold text-white mt-1">{formatMoney(metrics.netTotal)}</p>
                   </div>
                 </div>
 
-                {/* BENEFICIOS 50% */}
+                {/* BENEFICIOS 50% EXACTOS SOBRE UTILIDAD NETA TOTAL */}
                 {activeDeviceObj.roleKey === 'driver1' && (
-                  <div className="bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-xl">
-                    <span className="text-xs font-bold text-emerald-400">TU BENEFICIO 50% (Conductor 1)</span>
-                    <p className="text-2xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
+                  <div className="bg-emerald-950/30 border border-emerald-500/40 p-5 rounded-2xl shadow-lg">
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">TU BENEFICIO 50% (Conductor 1)</span>
+                    <p className="text-3xl font-black text-emerald-300 mt-2">{formatMoney(metrics.driver1Share)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Calculado como el 50% exacto de la Utilidad Neta Total ({formatMoney(metrics.netTotal)} / 2)</p>
                   </div>
                 )}
 
                 {activeDeviceObj.roleKey === 'owner' && (
-                  <div className="bg-amber-950/30 border border-amber-500/40 p-4 rounded-xl">
-                    <span className="text-xs font-bold text-amber-400">TU BENEFICIO 50% (Dueño Camión)</span>
-                    <p className="text-2xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
+                  <div className="bg-amber-950/30 border border-amber-500/40 p-5 rounded-2xl shadow-lg">
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">TU BENEFICIO 50% (Dueño Camión)</span>
+                    <p className="text-3xl font-black text-amber-300 mt-2">{formatMoney(metrics.ownerShare)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Calculado como el 50% exacto de la Utilidad Neta Total ({formatMoney(metrics.netTotal)} / 2)</p>
+                  </div>
+                )}
+
+                {activeDeviceObj.roleKey === 'admin' && (
+                  <div className="bg-purple-950/30 border border-purple-500/40 p-5 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">50% Conductor 1</span>
+                      <p className="text-2xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">50% Dueño del Camión</span>
+                      <p className="text-2xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
+                    </div>
                   </div>
                 )}
               </div>

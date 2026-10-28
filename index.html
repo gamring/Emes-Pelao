@@ -6,17 +6,17 @@
   <title>Control de Fletes y Servicios</title>
   
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
   
   <!-- React & React DOM -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)" crossorigin></script>
+  <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)" crossorigin></script>
   
   <!-- Babel compiler -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
   
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
 </head>
 <body class="bg-slate-950 text-slate-100">
   <div id="root"></div>
@@ -109,16 +109,13 @@
 
       const [selectedMonth, setSelectedMonth] = useState('2026-10');
       
-      // Modales de Registro
       const [isFreightModalOpen, setIsFreightModalOpen] = useState(false);
       const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
       const [isEditKpiModalOpen, setIsEditKpiModalOpen] = useState(false);
       const [isKeysModalOpen, setIsKeysModalOpen] = useState(false);
       
-      // Modal para ver foto ampliada de la boleta
       const [selectedReceiptPhoto, setSelectedReceiptPhoto] = useState(null);
 
-      // Formularios
       const [freightForm, setFreightForm] = useState({
         client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0],
         driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado'
@@ -159,7 +156,6 @@
 
       const monthlyMovements = useMemo(() => movements.filter(m => m.date && m.date.startsWith(selectedMonth)), [movements, selectedMonth]);
 
-      // Métricas globales
       const metrics = useMemo(() => {
         let totalFreights = 0, totalExpenses = 0;
         let totalIssuedInvoices = 0, totalPaidInvoices = 0;
@@ -199,7 +195,6 @@
         setMovements(movements.map(m => m.id === id ? { ...m, invoicingStatus: newStatus } : m));
       };
 
-      // Manejo de carga de foto de boleta
       const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -253,14 +248,13 @@
 
       return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-20">
-          {/* HEADER */}
           <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10">
             <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-600 rounded-xl"><Truck /></div>
+                <div className="p-2 bg-emerald-600 rounded-xl"><Truck/></div>
                 <div>
                   <h1 className="font-bold text-lg">FletesSync</h1>
-                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión con Boletas de Gastos</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión de Fletes y Servicios</p>
                 </div>
               </div>
 
@@ -279,18 +273,17 @@
                     title="Cerrar sesión"
                     className="p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg border border-slate-700"
                   >
-                    <LogOut />
+                    <LogOut/>
                   </button>
                 )}
               </div>
             </div>
           </header>
 
-          {/* PANTALLA DE BLOQUEO / CLAVE */}
           {!isAuthenticated ? (
             <main className="max-w-md mx-auto mt-16 p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl space-y-5 text-center">
               <div className="w-12 h-12 bg-emerald-950 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400">
-                <Lock />
+                <Lock/>
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">{currentDevice}</h2>
@@ -317,13 +310,10 @@
               </form>
             </main>
           ) : (
-            /* CONTENIDO PRINCIPAL AUTENTICADO */
             <main className="max-w-5xl mx-auto p-4 space-y-6">
-              
-              {/* BARRA SUPERIOR */}
               <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Clock />
+                  <Clock/>
                   <span className="text-xs text-slate-400">Mes:</span>
                   <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer" />
                 </div>
@@ -335,14 +325,14 @@
                         onClick={() => setIsEditKpiModalOpen(true)}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-purple-900 hover:bg-purple-800 border border-purple-500/40 text-purple-200 font-bold text-xs px-3 py-2 rounded-xl transition"
                       >
-                        <Edit /> Nombres KPI
+                        <Edit/> Nombres KPI
                       </button>
 
                       <button 
                         onClick={() => setIsKeysModalOpen(true)}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-amber-900 hover:bg-amber-800 border border-amber-500/40 text-amber-200 font-bold text-xs px-3 py-2 rounded-xl transition"
                       >
-                        <Key /> Control Claves
+                        <Key/> Control Claves
                       </button>
                     </>
                   )}
@@ -352,7 +342,7 @@
                       onClick={() => setIsFreightModalOpen(true)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition"
                     >
-                      <PlusCircle /> + Flete
+                      <PlusCircle/> + Flete
                     </button>
                   )}
 
@@ -360,12 +350,11 @@
                     onClick={() => setIsExpenseModalOpen(true)}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition"
                   >
-                    <Camera /> + Gasto con Foto
+                    <Camera/> + Gasto con Foto
                   </button>
                 </div>
               </div>
 
-              {/* VISTA CONDUCTOR 4 / DISPOSITIVO 4 */}
               {activeDeviceObj.roleKey === 'driver2' ? (
                 <div className="space-y-4">
                   <div className="bg-blue-950/40 border border-blue-500/30 p-4 rounded-xl text-xs text-blue-300">
@@ -380,10 +369,10 @@
                             {item.receiptImage ? (
                               <button onClick={() => setSelectedReceiptPhoto(item.receiptImage)} className="relative group">
                                 <img src={item.receiptImage} className="w-10 h-10 object-cover rounded-lg border border-rose-500/40" alt="Boleta" />
-                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Eye /></div>
+                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Eye/></div>
                               </button>
                             ) : (
-                              <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center text-slate-600"><Image /></div>
+                              <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center text-slate-600"><Image/></div>
                             )}
                             <div>
                               <span className="font-bold text-white text-xs">{item.category}</span>
@@ -392,7 +381,7 @@
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-rose-400">{formatMoney(item.amount)}</span>
-                            <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400"><Trash2 /></button>
+                            <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400"><Trash2/></button>
                           </div>
                         </div>
                       ))}
@@ -400,10 +389,7 @@
                   </div>
                 </div>
               ) : (
-                /* VISTA GENERAL ROLES 1, 2 Y 3 */
                 <div className="space-y-6">
-                  
-                  {/* INDICADORES FINANCIEROS */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
                       <span className="text-xs text-slate-400 font-bold uppercase">{kpiTitles.freights}</span>
@@ -419,7 +405,6 @@
                     </div>
                   </div>
 
-                  {/* BENEFICIOS 50% */}
                   {activeDeviceObj.roleKey === 'driver1' && (
                     <div className="bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
                       <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{kpiTitles.emesShare}</span>
@@ -447,11 +432,10 @@
                     </div>
                   )}
 
-                  {/* MOVIMIENTOS Y VISTA DE BOLETAS ADJUNTAS */}
                   <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
                       <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                        <FileText /> Movimientos y Comprobantes
+                        <FileText/> Movimientos y Comprobantes
                       </h3>
                       <div className="flex gap-4 text-xs">
                         <span className="text-amber-400 font-bold">Por Cobrar: {formatMoney(metrics.totalIssuedInvoices)}</span>
@@ -463,15 +447,14 @@
                       {monthlyMovements.map(item => (
                         <div key={item.id} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
                           <div className="flex items-center gap-3">
-                            {/* MINIATURA DE FOTO DE BOLETA PARA GASTOS */}
                             {item.type === 'expense' && (
                               item.receiptImage ? (
                                 <button onClick={() => setSelectedReceiptPhoto(item.receiptImage)} className="relative group shrink-0" title="Ver foto de boleta">
                                   <img src={item.receiptImage} className="w-10 h-10 object-cover rounded-lg border border-rose-500/40" alt="Boleta" />
-                                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Eye /></div>
+                                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Eye/></div>
                                 </button>
                               ) : (
-                                <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center text-slate-600 shrink-0" title="Sin foto"><Image /></div>
+                                <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center text-slate-600 shrink-0" title="Sin foto"><Image/></div>
                               )
                             )}
 
@@ -505,7 +488,7 @@
                               {item.type === 'freight' ? '+' : '-'}{formatMoney(item.amount)}
                             </span>
 
-                            <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400 p-1"><Trash2 /></button>
+                            <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400 p-1"><Trash2/></button>
                           </div>
                         </div>
                       ))}
@@ -517,25 +500,23 @@
             </main>
           )}
 
-          {/* VISOR DE FOTO DE BOLETA AMPLIADA */}
           {selectedReceiptPhoto && (
             <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReceiptPhoto(null)}>
               <div className="relative max-w-2xl w-full bg-slate-900 p-3 rounded-2xl border border-slate-800" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
-                  <span className="text-xs font-bold text-white flex items-center gap-2"><Image /> Foto de Boleta / Comprobante</span>
-                  <button onClick={() => setSelectedReceiptPhoto(null)} className="text-slate-400 hover:text-white p-1"><X /></button>
+                  <span className="text-xs font-bold text-white flex items-center gap-2"><Image/> Foto de Boleta / Comprobante</span>
+                  <button onClick={() => setSelectedReceiptPhoto(null)} className="text-slate-400 hover:text-white p-1"><X/></button>
                 </div>
                 <img src={selectedReceiptPhoto} className="max-h-[75vh] w-full object-contain rounded-xl" alt="Boleta ampliada" />
               </div>
             </div>
           )}
 
-          {/* MODAL INGRESAR GASTO CON FOTO DE BOLETA */}
           {isExpenseModalOpen && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <Camera /> Ingresar Gasto con Foto de Boleta
+                  <Camera/> Ingresar Gasto con Foto de Boleta
                 </h3>
                 <form onSubmit={handleSaveExpense} className="space-y-3 text-xs">
                   <div>
@@ -559,23 +540,21 @@
                     </div>
                   </div>
 
-                  {/* CARGA / CAPTURA DE FOTO DE BOLETA */}
                   <div>
                     <label className="text-slate-400 block mb-1">Adjuntar Foto de Boleta / Comprobante</label>
                     <label className="flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 border border-dashed border-slate-700 rounded-xl p-3 text-slate-300 cursor-pointer transition">
-                      <Camera />
+                      <Camera/>
                       <span className="font-semibold">{expenseForm.receiptImage ? 'Cambiar Foto de Boleta' : 'Tomar Foto o Subir Boleta'}</span>
                       <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
                     </label>
 
-                    {/* VISTA PREVIA DE LA FOTO SELECCIONADA */}
                     {expenseForm.receiptImage && (
                       <div className="mt-2 relative bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <img src={expenseForm.receiptImage} className="w-12 h-12 object-cover rounded-lg" alt="Vista previa" />
                           <span className="text-[11px] text-emerald-400 font-bold">✓ Foto adjunta</span>
                         </div>
-                        <button type="button" onClick={() => setExpenseForm({...expenseForm, receiptImage: null})} className="text-slate-500 hover:text-rose-400 p-1"><X /></button>
+                        <button type="button" onClick={() => setExpenseForm({...expenseForm, receiptImage: null})} className="text-slate-500 hover:text-rose-400 p-1"><X/></button>
                       </div>
                     )}
                   </div>
@@ -589,7 +568,6 @@
             </div>
           )}
 
-          {/* MODAL INGRESAR FLETE */}
           {isFreightModalOpen && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
@@ -634,12 +612,11 @@
             </div>
           )}
 
-          {/* MODAL EDITAR NOMBRES DE KPI */}
           {isEditKpiModalOpen && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <Edit /> Editar Nombres de KPIs
+                  <Edit/> Editar Nombres de KPIs
                 </h3>
                 <div className="space-y-3 text-xs">
                   <div>
@@ -670,12 +647,11 @@
             </div>
           )}
 
-          {/* MODAL CONTROL DE CLAVES */}
           {isKeysModalOpen && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <Shield /> Administrar Claves por Dispositivo
+                  <Shield/> Administrar Claves por Dispositivo
                 </h3>
                 <div className="space-y-3 text-xs">
                   {DEFAULT_DEVICES.map(dev => (
@@ -706,18 +682,18 @@
       );
     }
 
-    ReactDOM.render(<App />, document.getElementById('root'));
+    ReactDOM.render(<App/>, document.getElementById('root'));
   </script>
 </body>
 </html>
 ```eof
 
-### ¿Cómo actualizar en tu GitHub?
-1. Abre tu repositorio: **`[https://github.com/gamring/Emes-Pelao](https://github.com/gamring/Emes-Pelao)`**
-2. Entra al archivo **`index.html`** y presiona el botón del **lápiz (Edit file)**.
-3. Reemplaza todo el código viejo con este nuevo bloque y haz clic en **`Commit changes...`**.
+### Pasos exactos para arreglarlo en GitHub:
 
-### Novedades implementadas:
-1. **Captura directa con cámara en celulares**: Al presionar **`+ Gasto con Foto`**, el botón permite abrir la cámara del celular o seleccionar una imagen guardada.
-2. **Vista previa antes de guardar**: Muestra la miniatura de la boleta adjunta.
-3. **Visor de Boletas en pantalla completa**: Al hacer clic sobre cualquier miniatura en el historial, la foto se amplía para poder leer los datos del comprobante.
+1. Ve a tu repositorio: **[https://github.com/gamring/Emes-Pelao](https://github.com/gamring/Emes-Pelao)**
+2. Haz clic en el archivo **`index.html`** y presiona el icono del **lápiz (Edit file)**.
+3. **Selecciona absolutamente TODO el contenido del archivo y bórralo**.
+4. Copia y pega el código 100% limpio del recuadro `index.html` que está en el panel derecho.
+5. Haz clic en el botón verde **`Commit changes...`**.
+
+Una vez guardado, recarga tu enlace **`https://gamring.github.io/Emes-Pelao/`** y la aplicación cargará de inmediato para ingresar con la clave **`0000`**.

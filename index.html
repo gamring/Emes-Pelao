@@ -1,0 +1,1093 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Truck, 
+  Receipt, 
+  BarChart3, 
+  Clock, 
+  PlusCircle, 
+  Search, 
+  Download, 
+  Smartphone, 
+  Sparkles, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  AlertCircle, 
+  Trash2, 
+  Edit3, 
+  UserCheck 
+} from 'lucide-react';
+
+// --- INITIAL MOCK DATA ---
+const INITIAL_MOVEMENTS = [
+  {
+    id: 'fl-101',
+    type: 'freight',
+    client: 'Constructora Del Sol',
+    origin: 'Santiago Central',
+    destination: 'Valparaíso Puerto',
+    amount: 300000,
+    vehicle: 'Camión Volvo FH 4x2',
+    driverName: 'Juan Pérez (Conductor 1)',
+    date: '2026-10-25',
+    status: 'Completado',
+    invoicingStatus: 'Factura Pagada',
+    paymentStatus: 'Pagado',
+    notes: 'Transporte de encofrados metálicos.',
+    createdBy: 'Dispositivo 1 - Conductor 1',
+    timestamp: 1729852800000
+  },
+  {
+    id: 'exp-201',
+    type: 'expense',
+    category: 'Combustible',
+    amount: 60000,
+    date: '2026-10-25',
+    description: 'Carga Diésel Shell Panamericana',
+    vehicle: 'Camión Volvo FH 4x2',
+    driverName: 'Juan Pérez (Conductor 1)',
+    createdBy: 'Dispositivo 1 - Conductor 1',
+    timestamp: 1729856400000
+  },
+  {
+    id: 'exp-202',
+    type: 'expense',
+    category: 'Peajes',
+    amount: 14500,
+    date: '2026-10-25',
+    description: 'Peaje Ruta 68 - Ida y Vuelta',
+    vehicle: 'Camión Volvo FH 4x2',
+    driverName: 'Juan Pérez (Conductor 1)',
+    createdBy: 'Dispositivo 1 - Conductor 1',
+    timestamp: 1729860000000
+  },
+  {
+    id: 'fl-102',
+    type: 'freight',
+    client: 'Agrocomercial Norte',
+    origin: 'Rancagua',
+    destination: 'Coquimbo',
+    amount: 480000,
+    vehicle: 'Mercedes-Benz Actros',
+    driverName: 'Carlos Gómez (Conductor 2)',
+    date: '2026-10-27',
+    status: 'En Curso',
+    invoicingStatus: 'Facturado (Pendiente)',
+    paymentStatus: 'Pendiente',
+    notes: 'Carga refrigerada de frutas. Temperatura 4°C.',
+    createdBy: 'Dispositivo 4 - Conductor 2',
+    timestamp: 1730025600000
+  },
+  {
+    id: 'exp-203',
+    type: 'expense',
+    category: 'Combustible',
+    amount: 110000,
+    date: '2026-10-27',
+    description: 'Estación Copec Troncal',
+    vehicle: 'Mercedes-Benz Actros',
+    driverName: 'Carlos Gómez (Conductor 2)',
+    createdBy: 'Dispositivo 4 - Conductor 2',
+    timestamp: 1730030000000
+  },
+  {
+    id: 'exp-204',
+    type: 'expense',
+    category: 'Reparaciones',
+    amount: 85000,
+    date: '2026-10-28',
+    description: 'Reparación pinchazo neumático delantero',
+    vehicle: 'Mercedes-Benz Actros',
+    driverName: 'Carlos Gómez (Conductor 2)',
+    createdBy: 'Dispositivo 4 - Conductor 2',
+    timestamp: 1730035000000
+  }
+];
+
+const DEVICES = [
+  { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Conductor 1', role: 'Conductor (50% Beneficio)', avatarBg: 'bg-emerald-600' },
+  { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Dueño del Camión', role: 'Dueño (50% Beneficio)', avatarBg: 'bg-amber-600' },
+  { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total & Facturación', avatarBg: 'bg-purple-600' },
+  { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos', avatarBg: 'bg-blue-600' },
+];
+
+const EXPENSE_CATEGORIES = ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'];
+const INVOICE_STATUSES = ['No Facturado', 'Facturado (Pendiente)', 'Factura Pagada'];
+const VEHICLES = ['Camión Volvo FH 4x2', 'Mercedes-Benz Actros', 'Scania R450', 'Furgón Hyundai H100'];
+
+export default function App() {
+  // State management
+  const [movements, setMovements] = useState(() => {
+    const saved = localStorage.getItem('fletes_movements_data');
+    return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
+  });
+
+  const [currentDevice, setCurrentDevice] = useState(() => {
+    return localStorage.getItem('fletes_active_device') || DEVICES[0].name;
+  });
+
+  // Custom driver 1 name
+  const [driver1CustomName, setDriver1CustomName] = useState(() => {
+    return localStorage.getItem('fletes_driver1_name') || 'Juan Pérez';
+  });
+
+  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, freights, expenses, history
+  const [selectedMonth, setSelectedMonth] = useState('2026-10'); // YYYY-MM
+  const [syncStatus, setSyncStatus] = useState('syncing'); // syncing, online
+  const [syncNotification, setSyncNotification] = useState(null);
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [historyTypeFilter, setHistoryTypeFilter] = useState('all'); // all, freight, expense
+  const [invoiceFilter, setInvoiceFilter] = useState('all'); // all, No Facturado, Facturado (Pendiente), Factura Pagada
+
+  // Modals state
+  const [isFreightModalOpen, setIsFreightModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Current Device Role details
+  const activeDeviceObj = useMemo(() => {
+    return DEVICES.find(d => d.name === currentDevice) || DEVICES[0];
+  }, [currentDevice]);
+
+  // Form States
+  const [freightForm, setFreightForm] = useState({
+    client: '',
+    origin: '',
+    destination: '',
+    amount: '',
+    vehicle: VEHICLES[0],
+    driverName: 'Juan Pérez (Conductor 1)',
+    date: new Date().toISOString().split('T')[0],
+    status: 'Pendiente',
+    invoicingStatus: 'No Facturado',
+    paymentStatus: 'Pendiente',
+    notes: ''
+  });
+
+  const [expenseForm, setExpenseForm] = useState({
+    category: EXPENSE_CATEGORIES[0],
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    vehicle: VEHICLES[0],
+    driverName: 'Juan Pérez (Conductor 1)',
+    freightId: ''
+  });
+
+  // State for Driver 4 Freight Selector KPI
+  const [driver4SelectedFreightId, setDriver4SelectedFreightId] = useState('');
+
+  // Save driver name to storage
+  useEffect(() => {
+    localStorage.setItem('fletes_driver1_name', driver1CustomName);
+  }, [driver1CustomName]);
+
+  // Save to LocalStorage & simulate sync pulse
+  useEffect(() => {
+    localStorage.setItem('fletes_movements_data', JSON.stringify(movements));
+    setSyncStatus('syncing');
+    const timer = setTimeout(() => {
+      setSyncStatus('online');
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [movements]);
+
+  useEffect(() => {
+    localStorage.setItem('fletes_active_device', currentDevice);
+  }, [currentDevice]);
+
+  const triggerSyncMessage = (msg) => {
+    setSyncNotification(msg);
+    setTimeout(() => {
+      setSyncNotification(null);
+    }, 3500);
+  };
+
+  // Filtered movements by Month/Year
+  const monthlyMovements = useMemo(() => {
+    return movements.filter(m => {
+      if (!m.date) return false;
+      return m.date.startsWith(selectedMonth);
+    });
+  }, [movements, selectedMonth]);
+
+  // Financial Metrics Calculation with 50% split logic
+  const metrics = useMemo(() => {
+    let totalFreights = 0;
+    let totalExpenses = 0;
+    let pendingPayments = 0;
+    let completedFreightsCount = 0;
+
+    // Driver 1 specific metrics
+    let driver1Freights = 0;
+    let driver1Expenses = 0;
+
+    // Category breakdown
+    const expenseByCategory = {
+      'Combustible': 0,
+      'Viáticos': 0,
+      'Peajes': 0,
+      'Reparaciones': 0
+    };
+
+    monthlyMovements.forEach(m => {
+      if (m.type === 'freight') {
+        const val = Number(m.amount) || 0;
+        totalFreights += val;
+
+        if (m.driverName && m.driverName.includes('Conductor 1')) {
+          driver1Freights += val;
+        }
+
+        if (m.paymentStatus === 'Pendiente' || m.invoicingStatus === 'Facturado (Pendiente)') {
+          pendingPayments += val;
+        }
+        if (m.status === 'Completado') {
+          completedFreightsCount++;
+        }
+      } else if (m.type === 'expense') {
+        const val = Number(m.amount) || 0;
+        totalExpenses += val;
+
+        if (m.driverName && m.driverName.includes('Conductor 1')) {
+          driver1Expenses += val;
+        }
+
+        if (expenseByCategory[m.category] !== undefined) {
+          expenseByCategory[m.category] += val;
+        } else {
+          expenseByCategory[m.category] = val;
+        }
+      }
+    });
+
+    const netProfitTotal = totalFreights - totalExpenses;
+    
+    // 50/50 split calculations
+    const ownerShare = netProfitTotal > 0 ? netProfitTotal * 0.5 : 0;
+    const driver1NetProfit = driver1Freights - driver1Expenses;
+    const driver1Share = driver1NetProfit > 0 ? driver1NetProfit * 0.5 : 0;
+
+    return {
+      totalFreights,
+      totalExpenses,
+      netProfitTotal,
+      ownerShare,
+      driver1Freights,
+      driver1Expenses,
+      driver1NetProfit,
+      driver1Share,
+      pendingPayments,
+      completedFreightsCount,
+      expenseByCategory,
+      totalCount: monthlyMovements.length
+    };
+  }, [monthlyMovements]);
+
+  // Handle Form Submissions
+  const handleSaveFreight = (e) => {
+    e.preventDefault();
+    if (!freightForm.client || !freightForm.amount) return;
+
+    const assignedDriver = activeDeviceObj.roleKey === 'driver1' ? `${driver1CustomName} (Conductor 1)` : freightForm.driverName;
+
+    if (editingItem) {
+      setMovements(prev => prev.map(m => m.id === editingItem.id ? {
+        ...m,
+        ...freightForm,
+        driverName: assignedDriver,
+        amount: Number(freightForm.amount),
+        lastModifiedBy: currentDevice
+      } : m));
+      triggerSyncMessage(`Flete actualizado por ${currentDevice}`);
+    } else {
+      const newItem = {
+        id: `fl-${Date.now().toString().slice(-4)}`,
+        type: 'freight',
+        ...freightForm,
+        driverName: assignedDriver,
+        amount: Number(freightForm.amount),
+        createdBy: currentDevice,
+        timestamp: Date.now()
+      };
+      setMovements(prev => [newItem, ...prev]);
+      triggerSyncMessage(`Nuevo flete registrado desde ${currentDevice}`);
+    }
+
+    closeModals();
+  };
+
+  const handleSaveExpense = (e) => {
+    e.preventDefault();
+    if (!expenseForm.amount || !expenseForm.description) return;
+
+    const assignedDriver = activeDeviceObj.roleKey === 'driver1' ? `${driver1CustomName} (Conductor 1)` : expenseForm.driverName;
+
+    if (editingItem) {
+      setMovements(prev => prev.map(m => m.id === editingItem.id ? {
+        ...m,
+        ...expenseForm,
+        driverName: assignedDriver,
+        amount: Number(expenseForm.amount),
+        lastModifiedBy: currentDevice
+      } : m));
+      triggerSyncMessage(`Gasto modificado desde ${currentDevice}`);
+    } else {
+      const newItem = {
+        id: `exp-${Date.now().toString().slice(-4)}`,
+        type: 'expense',
+        ...expenseForm,
+        driverName: assignedDriver,
+        amount: Number(expenseForm.amount),
+        createdBy: currentDevice,
+        timestamp: Date.now()
+      };
+      setMovements(prev => [newItem, ...prev]);
+      triggerSyncMessage(`Nuevo gasto añadido por ${currentDevice}`);
+    }
+
+    closeModals();
+  };
+
+  const handleDeleteItem = (id) => {
+    if (activeDeviceObj.roleKey === 'driver2') {
+      alert('El Conductor 2 solo tiene permisos para ingresar registros.');
+      return;
+    }
+    if (window.confirm('¿Estás seguro de eliminar este registro? Se sincronizará en todos los dispositivos.')) {
+      setMovements(prev => prev.filter(m => m.id !== id));
+      triggerSyncMessage(`Registro eliminado por ${currentDevice}`);
+    }
+  };
+
+  const openEditModal = (item) => {
+    setEditingItem(item);
+    if (item.type === 'freight') {
+      setFreightForm({
+        client: item.client || '',
+        origin: item.origin || '',
+        destination: item.destination || '',
+        amount: item.amount || '',
+        vehicle: item.vehicle || VEHICLES[0],
+        driverName: item.driverName || 'Juan Pérez (Conductor 1)',
+        date: item.date || new Date().toISOString().split('T')[0],
+        status: item.status || 'Pendiente',
+        invoicingStatus: item.invoicingStatus || 'No Facturado',
+        paymentStatus: item.paymentStatus || 'Pendiente',
+        notes: item.notes || ''
+      });
+      setIsFreightModalOpen(true);
+    } else {
+      setExpenseForm({
+        category: item.category || EXPENSE_CATEGORIES[0],
+        amount: item.amount || '',
+        date: item.date || new Date().toISOString().split('T')[0],
+        description: item.description || '',
+        vehicle: item.vehicle || VEHICLES[0],
+        driverName: item.driverName || 'Juan Pérez (Conductor 1)'
+      });
+      setIsExpenseModalOpen(true);
+    }
+  };
+
+  const closeModals = () => {
+    setIsFreightModalOpen(false);
+    setIsExpenseModalOpen(false);
+    setEditingItem(null);
+    setFreightForm({
+      client: '',
+      origin: '',
+      destination: '',
+      amount: '',
+      vehicle: VEHICLES[0],
+      driverName: `${driver1CustomName} (Conductor 1)`,
+      date: new Date().toISOString().split('T')[0],
+      status: 'Pendiente',
+      invoicingStatus: 'No Facturado',
+      paymentStatus: 'Pendiente',
+      notes: ''
+    });
+    setExpenseForm({
+      category: EXPENSE_CATEGORIES[0],
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      description: '',
+      vehicle: VEHICLES[0],
+      driverName: `${driver1CustomName} (Conductor 1)`
+    });
+  };
+
+  // Direct Invoicing change (Admin only)
+  const updateInvoiceStatus = (item, newStatus) => {
+    setMovements(prev => prev.map(m => m.id === item.id ? { 
+      ...m, 
+      invoicingStatus: newStatus, 
+      paymentStatus: newStatus === 'Factura Pagada' ? 'Pagado' : m.paymentStatus,
+      lastModifiedBy: currentDevice 
+    } : m));
+    triggerSyncMessage(`Estado de Factura cambiado a "${newStatus}" por Admin`);
+  };
+
+  // Export CSV
+  const exportToCSV = () => {
+    const headers = ["ID", "Tipo", "Fecha", "Cliente/Categoría", "Origen", "Destino", "Monto", "Estado Flete", "Facturación", "Conductor", "Vehículo", "Creado Por"];
+    const rows = monthlyMovements.map(m => [
+      m.id,
+      m.type === 'freight' ? 'Flete' : 'Gasto',
+      m.date,
+      m.type === 'freight' ? `"${m.client}"` : `"${m.category}"`,
+      m.origin ? `"${m.origin}"` : '-',
+      m.destination ? `"${m.destination}"` : '-',
+      m.amount,
+      m.status || '-',
+      m.invoicingStatus || '-',
+      `"${m.driverName || '-'}"`,
+      `"${m.vehicle}"`,
+      `"${m.createdBy}"`
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Reporte_Fletes_${selectedMonth}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Search & Filters
+  const filteredHistory = useMemo(() => {
+    return monthlyMovements.filter(item => {
+      // Role-based visibility filtering
+      if (activeDeviceObj.roleKey === 'driver1') {
+        const isMyFreight = item.type === 'freight' && (item.driverName?.includes('Conductor 1') || item.createdBy?.includes('Dispositivo 1'));
+        const isMyExpense = item.type === 'expense' && (item.driverName?.includes('Conductor 1') || item.createdBy?.includes('Dispositivo 1'));
+        if (!isMyFreight && !isMyExpense) return false;
+      } else if (activeDeviceObj.roleKey === 'driver2') {
+        // Driver 2 (Dispositivo 4) ONLY views expenses
+        if (item.type !== 'expense') return false;
+        const isMyExpense = item.driverName?.includes('Conductor 2') || item.createdBy?.includes('Dispositivo 4');
+        if (!isMyExpense) return false;
+      }
+
+      // Type filter
+      if (historyTypeFilter !== 'all' && item.type !== historyTypeFilter) return false;
+
+      // Invoice status filter
+      if (invoiceFilter !== 'all' && item.type === 'freight' && item.invoicingStatus !== invoiceFilter) return false;
+
+      // Text search
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      if (item.type === 'freight') {
+        return (
+          item.client?.toLowerCase().includes(term) ||
+          item.origin?.toLowerCase().includes(term) ||
+          item.destination?.toLowerCase().includes(term) ||
+          item.driverName?.toLowerCase().includes(term) ||
+          item.vehicle?.toLowerCase().includes(term)
+        );
+      } else {
+        return (
+          item.category?.toLowerCase().includes(term) ||
+          item.description?.toLowerCase().includes(term) ||
+          item.driverName?.toLowerCase().includes(term)
+        );
+      }
+    });
+  }, [monthlyMovements, historyTypeFilter, invoiceFilter, searchTerm, activeDeviceObj]);
+
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  // Driver 4 Specific Freight List and KPI metrics
+  const driver2Freights = useMemo(() => {
+    return movements.filter(m => m.type === 'freight' && (m.driverName?.includes('Conductor 2') || m.createdBy?.includes('Dispositivo 4')));
+  }, [movements]);
+
+  const driver4ActiveFreight = useMemo(() => {
+    if (!driver4SelectedFreightId) {
+      return driver2Freights[0] || null;
+    }
+    return driver2Freights.find(f => f.id === driver4SelectedFreightId) || driver2Freights[0] || null;
+  }, [driver2Freights, driver4SelectedFreightId]);
+
+  const driver4FreightExpenses = useMemo(() => {
+    if (!driver4ActiveFreight) return [];
+    return monthlyMovements.filter(m => m.type === 'expense' && (m.freightId === driver4ActiveFreight.id || m.description?.toLowerCase().includes(driver4ActiveFreight.client.toLowerCase())));
+  }, [monthlyMovements, driver4ActiveFreight]);
+
+  const driver4FreightExpenseTotal = useMemo(() => {
+    return driver4FreightExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  }, [driver4FreightExpenses]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 md:pb-8 flex flex-col selection:bg-emerald-500 selection:text-slate-900">
+      
+      {/* --- HEADER --- */}
+      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+          
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl shadow-lg shadow-emerald-900/30">
+                <Truck className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg leading-tight text-white tracking-wide">FletesSync</h1>
+                <p className="text-[10px] text-emerald-400 font-medium tracking-wider uppercase">4 Dispositivos & Reparto 50%</p>
+              </div>
+            </div>
+
+            <div className="sm:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 border border-slate-700">
+              <span className={`w-2 h-2 rounded-full ${syncStatus === 'online' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+              <span className="text-slate-300 text-[11px]">{syncStatus === 'online' ? 'En Línea' : 'Sincro...'}</span>
+            </div>
+          </div>
+
+          {/* Active Device Switcher */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1.5 border border-slate-700 w-full sm:w-auto">
+              <Smartphone className="w-4 h-4 text-emerald-400 ml-1 shrink-0" />
+              <select 
+                value={currentDevice}
+                onChange={(e) => {
+                  setCurrentDevice(e.target.value);
+                  triggerSyncMessage(`Modo cambiado a: ${e.target.value}`);
+                }}
+                className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer py-0.5 pr-2 w-full sm:w-auto"
+              >
+                {DEVICES.map(dev => (
+                  <option key={dev.id} value={dev.name} className="bg-slate-900 text-slate-200">
+                    {dev.name} ({dev.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Sync notification */}
+        {syncNotification && (
+          <div className="max-w-6xl mx-auto mt-2">
+            <div className="bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs py-1.5 px-3 rounded-lg flex items-center gap-2 shadow-lg animate-fade-in">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">{syncNotification}</span>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="max-w-6xl mx-auto w-full px-4 pt-4 flex-1">
+        
+        {/* DRIVER 1 NAME SETTING BANNER */}
+        {activeDeviceObj.roleKey === 'driver1' && (
+          <div className="mb-4 bg-emerald-950/40 border border-emerald-500/30 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-emerald-300">
+              <UserCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Conductor Registrado: <strong>{driver1CustomName}</strong> (Gana el 50% de la utilidad de sus fletes)</span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input 
+                type="text" 
+                value={driver1CustomName}
+                onChange={(e) => setDriver1CustomName(e.target.value)}
+                placeholder="Ingresa tu Nombre"
+                className="bg-slate-900 border border-slate-700 text-xs text-white px-2.5 py-1 rounded-lg focus:outline-none focus:border-emerald-500 w-full sm:w-40"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* MONTH SELECTOR & QUICK ACTIONS */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-slate-900/60 p-3 rounded-2xl border border-slate-800/80">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-slate-800 rounded-lg border border-slate-700">
+              <Clock className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <label htmlFor="month-select" className="text-[11px] text-slate-400 font-medium block">Mes de Control</label>
+              <input 
+                id="month-select"
+                type="month" 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-transparent text-sm font-bold text-white focus:outline-none border-b border-dashed border-emerald-500/50 cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* DRIVER 2 RESTRICTED NOTICE BANNER & EXCLUSIVE FREIGHT KPI */}
+        {activeDeviceObj.roleKey === 'driver2' && (
+          <div className="space-y-4 mb-6">
+            <div className="bg-blue-950/40 border border-blue-500/30 p-3 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-blue-300">
+                <AlertCircle className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>Modo Conductor 2: Visualiza y registra <strong>únicamente los gastos de tu flete asignado</strong>.</span>
+              </div>
+            </div>
+
+            {/* DRIVER 4 KPI CARD */}
+            <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-5 shadow-lg">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-800">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">KPI Flete Asignado (Conductor 2)</span>
+                  <h2 className="text-lg font-bold text-white mt-0.5">
+                    {driver4ActiveFreight ? `${driver4ActiveFreight.client} (${driver4ActiveFreight.origin} → ${driver4ActiveFreight.destination})` : 'Sin Flete Seleccionado'}
+                  </h2>
+                </div>
+
+                {/* Freight Selector */}
+                <div className="w-full sm:w-auto">
+                  <select
+                    value={driver4SelectedFreightId || (driver4ActiveFreight?.id || '')}
+                    onChange={(e) => setDriver4SelectedFreightId(e.target.value)}
+                    className="w-full sm:w-auto bg-slate-950 border border-slate-700 text-xs font-semibold text-white px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500"
+                  >
+                    {driver2Freights.length === 0 ? (
+                      <option value="">No hay fletes registrados para Conductor 2</option>
+                    ) : (
+                      driver2Freights.map(f => (
+                        <option key={f.id} value={f.id}>
+                          Flete: {f.client} ({f.date})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* KPI Metrics */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                  <span className="text-xs text-slate-400 block">Flete Activo</span>
+                  <span className="text-base font-bold text-slate-200 mt-1 block">
+                    {driver4ActiveFreight ? driver4ActiveFreight.client : '-'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    {driver4ActiveFreight ? `ID: ${driver4ActiveFreight.id}` : ''}
+                  </span>
+                </div>
+
+                <div className="bg-rose-950/30 p-4 rounded-xl border border-rose-500/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-rose-300 font-medium">Total Gastos de este Flete</span>
+                    <TrendingDown className="w-4 h-4 text-rose-400" />
+                  </div>
+                  <span className="text-2xl font-black text-rose-400 mt-1 block">
+                    {formatMoney(driver4FreightExpenseTotal)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    {driver4FreightExpenses.length} rendiciones en este flete
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 1: DASHBOARD CON BENEFICIOS 50% --- */}
+        {activeTab === 'dashboard' && activeDeviceObj.roleKey !== 'driver2' && (
+          <div className="space-y-6">
+            
+            {/* ROLE BENEFIT SUMMARY CARD */}
+            {activeDeviceObj.roleKey === 'driver1' && (
+              <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border border-emerald-500/40 rounded-2xl p-5 shadow-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Beneficio Conductor 1 (50%)</span>
+                    <h2 className="text-xl font-bold text-white mt-0.5">{driver1CustomName}</h2>
+                  </div>
+                  <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                    <DollarSign className="w-6 h-6" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Fletes Ingresados</span>
+                    <span className="text-sm font-bold text-emerald-400">{formatMoney(metrics.driver1Freights)}</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Gastos Descontados</span>
+                    <span className="text-sm font-bold text-rose-400">{formatMoney(metrics.driver1Expenses)}</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Ganancia Neta</span>
+                    <span className="text-sm font-bold text-white">{formatMoney(metrics.driver1NetProfit)}</span>
+                  </div>
+                  <div className="bg-emerald-900/40 p-2.5 rounded-xl border border-emerald-500/40">
+                    <span className="text-[10px] text-emerald-300 font-bold block">Tu 50% Correspondiente</span>
+                    <span className="text-base font-black text-emerald-300">{formatMoney(metrics.driver1Share)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeDeviceObj.roleKey === 'owner' && (
+              <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-5 shadow-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Beneficio Dueño del Camión (50%)</span>
+                    <h2 className="text-xl font-bold text-white mt-0.5">Retorno de Operaciones Flota</h2>
+                  </div>
+                  <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Ingreso Total Flota</span>
+                    <span className="text-sm font-bold text-emerald-400">{formatMoney(metrics.totalFreights)}</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Egresos Totales</span>
+                    <span className="text-sm font-bold text-rose-400">{formatMoney(metrics.totalExpenses)}</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">Utilidad Neta Total</span>
+                    <span className="text-sm font-bold text-white">{formatMoney(metrics.netProfitTotal)}</span>
+                  </div>
+                  <div className="bg-amber-900/40 p-2.5 rounded-xl border border-amber-500/40">
+                    <span className="text-[10px] text-amber-300 font-bold block">Tu 50% de Beneficio</span>
+                    <span className="text-base font-black text-amber-300">{formatMoney(metrics.ownerShare)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* GLOBAL METRICS CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">Ingresos Totales Fletes</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-2xl font-bold text-white">{formatMoney(metrics.totalFreights)}</div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">Gastos Totales</span>
+                  <TrendingDown className="w-4 h-4 text-rose-400" />
+                </div>
+                <div className="text-2xl font-bold text-white">{formatMoney(metrics.totalExpenses)}</div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">Utilidad Neta Mes</span>
+                  <DollarSign className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className={`text-2xl font-bold ${metrics.netProfitTotal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {formatMoney(metrics.netProfitTotal)}
+                </div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400">Pendiente Cobro / Facturación</span>
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-2xl font-bold text-amber-300">{formatMoney(metrics.pendingPayments)}</div>
+              </div>
+            </div>
+
+            {/* EXPENSES BREAKDOWN BAR CHART / CATEGORIES */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-4">Desglose de Gastos por Categoría</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {EXPENSE_CATEGORIES.map(cat => {
+                  const amt = metrics.expenseByCategory[cat] || 0;
+                  const pct = metrics.totalExpenses > 0 ? ((amt / metrics.totalExpenses) * 100).toFixed(0) : 0;
+                  return (
+                    <div key={cat} className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[11px] text-slate-400 font-medium block truncate">{cat}</span>
+                      <span className="text-sm font-bold text-rose-400 block mt-1">{formatMoney(amt)}</span>
+                      <span className="text-[10px] text-slate-500">{pct}% del total</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* --- TAB 2 & 3: FREIGHTS & EXPENSES --- */}
+        {(activeTab === 'freights' || activeTab === 'expenses' || activeDeviceObj.roleKey === 'driver2') && activeTab !== 'history' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {monthlyMovements
+                .filter(item => {
+                  if (activeDeviceObj.roleKey === 'driver2') {
+                    return item.type === 'expense' && (item.driverName?.includes('Conductor 2') || item.createdBy?.includes('Dispositivo 4'));
+                  }
+                  return activeTab === 'freights' ? item.type === 'freight' : item.type === 'expense';
+                })
+                .map(item => (
+                  <div key={item.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="text-[10px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                          {item.id}
+                        </span>
+                        <h3 className="font-bold text-sm text-white mt-1">
+                          {item.type === 'freight' ? item.client : item.category}
+                        </h3>
+                        <p className="text-[11px] text-emerald-400">Chofer: {item.driverName || 'No asignado'}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`font-bold text-base block ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {item.type === 'freight' ? '+' : '-'}{formatMoney(item.amount)}
+                        </span>
+                        {item.type === 'freight' && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold inline-block mt-1 ${
+                            item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-500/20 text-emerald-300' :
+                            item.invoicingStatus === 'Facturado (Pendiente)' ? 'bg-amber-500/20 text-amber-300' :
+                            'bg-slate-800 text-slate-400'
+                          }`}>
+                            {item.invoicingStatus || 'No Facturado'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 mt-2">
+                      {item.type === 'freight' ? `${item.origin} → ${item.destination}` : item.description}
+                    </p>
+
+                    <div className="mt-3 pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+                      <span className="text-slate-500">{item.date} • {item.vehicle}</span>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => openEditModal(item)} className="p-1 text-slate-400 hover:text-white"><Edit3 className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeleteItem(item.id)} className="p-1 text-slate-400 hover:text-rose-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 4: HISTORY & INVOICING STATUS (Admin Controls) --- */}
+        {activeTab === 'history' && (
+          <div className="space-y-4">
+            
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="relative w-full md:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar gastos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none"
+                />
+              </div>
+
+              {/* Invoice Status Filter (Only show if not Driver 2) */}
+              {activeDeviceObj.roleKey !== 'driver2' && (
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <span className="text-xs text-slate-400 font-medium">Facturación:</span>
+                  <select 
+                    value={invoiceFilter}
+                    onChange={(e) => setInvoiceFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 text-xs text-white rounded-xl px-2.5 py-1.5 focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">Todas las Facturas</option>
+                    <option value="No Facturado">No Facturado</option>
+                    <option value="Facturado (Pendiente)">Facturado (Pendiente)</option>
+                    <option value="Factura Pagada">Factura Pagada</option>
+                  </select>
+                </div>
+              )}
+
+              <button 
+                onClick={exportToCSV}
+                className="w-full md:w-auto flex items-center justify-center gap-1.5 bg-slate-800 text-slate-200 border border-slate-700 text-xs px-3.5 py-2 rounded-xl"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Exportar CSV</span>
+              </button>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-950 text-slate-400 font-mono border-b border-slate-800">
+                    <tr>
+                      <th className="py-3 px-4">Fecha</th>
+                      <th className="py-3 px-4">Tipo</th>
+                      <th className="py-3 px-4">Detalle / Categoría</th>
+                      <th className="py-3 px-4">Conductor</th>
+                      {activeDeviceObj.roleKey !== 'driver2' && <th className="py-3 px-4">Estado Factura</th>}
+                      <th className="py-3 px-4 text-right">Monto</th>
+                      <th className="py-3 px-4 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {filteredHistory.map(item => (
+                      <tr key={item.id} className="hover:bg-slate-800/50">
+                        <td className="py-3 px-4 font-mono text-slate-400">{item.date}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'freight' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                            {item.type === 'freight' ? 'Flete' : 'Gasto'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-white">
+                          {item.type === 'freight' ? item.client : item.description}
+                        </td>
+                        <td className="py-3 px-4 text-slate-300">{item.driverName || '-'}</td>
+                        {activeDeviceObj.roleKey !== 'driver2' && (
+                          <td className="py-3 px-4">
+                            {item.type === 'freight' ? (
+                              activeDeviceObj.roleKey === 'admin' ? (
+                                <select 
+                                  value={item.invoicingStatus || 'No Facturado'}
+                                  onChange={(e) => updateInvoiceStatus(item, e.target.value)}
+                                  className="bg-slate-950 border border-slate-700 text-[11px] text-white rounded px-2 py-1"
+                                >
+                                  {INVOICE_STATUSES.map(st => (
+                                    <option key={st} value={st}>{st}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-[11px] text-slate-300">{item.invoicingStatus || 'No Facturado'}</span>
+                              )
+                            ) : '-'}
+                          </td>
+                        )}
+                        <td className={`py-3 px-4 font-bold text-right ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {item.type === 'freight' ? '+' : '-'}{formatMoney(item.amount)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex justify-center gap-1">
+                            <button onClick={() => openEditModal(item)} className="p-1 hover:text-white text-slate-400"><Edit3 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleDeleteItem(item.id)} className="p-1 hover:text-rose-400 text-slate-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      {/* --- MOBILE NAVIGATION --- */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 px-2 py-1.5">
+        <div className={`grid ${activeDeviceObj.roleKey === 'driver2' ? 'grid-cols-2' : 'grid-cols-4'} gap-1 text-center`}>
+          {activeDeviceObj.roleKey !== 'driver2' && (
+            <button onClick={() => setActiveTab('dashboard')} className={`py-1.5 text-[10px] ${activeTab === 'dashboard' ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <BarChart3 className="w-5 h-5 mx-auto mb-0.5" />
+              <span>Resumen</span>
+            </button>
+          )}
+          {activeDeviceObj.roleKey !== 'driver2' && (
+            <button onClick={() => setActiveTab('freights')} className={`py-1.5 text-[10px] ${activeTab === 'freights' ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <Truck className="w-5 h-5 mx-auto mb-0.5" />
+              <span>Fletes</span>
+            </button>
+          )}
+          <button onClick={() => setActiveTab('expenses')} className={`py-1.5 text-[10px] ${activeTab === 'expenses' || (activeDeviceObj.roleKey === 'driver2' && activeTab === 'dashboard') ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <Receipt className="w-5 h-5 mx-auto mb-0.5" />
+            <span>Mis Gastos</span>
+          </button>
+          <button onClick={() => setActiveTab('history')} className={`py-1.5 text-[10px] ${activeTab === 'history' ? 'text-emerald-400' : 'text-slate-400'}`}>
+            <Clock className="w-5 h-5 mx-auto mb-0.5" />
+            <span>Historial</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* --- MODALS (FREIGHT & EXPENSE) WITH DRIVER & INVOICE FIELDS --- */}
+      {isFreightModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-4 space-y-3 text-xs">
+            <h3 className="font-bold text-white text-sm">{editingItem ? 'Editar Flete' : 'Registrar Flete'}</h3>
+            <form onSubmit={handleSaveFreight} className="space-y-3">
+              <input 
+                type="text" required placeholder="Cliente *" value={freightForm.client}
+                onChange={(e) => setFreightForm({...freightForm, client: e.target.value})}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" required placeholder="Origen *" value={freightForm.origin} onChange={(e) => setFreightForm({...freightForm, origin: e.target.value})} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+                <input type="text" required placeholder="Destino *" value={freightForm.destination} onChange={(e) => setFreightForm({...freightForm, destination: e.target.value})} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" required placeholder="Monto CLP *" value={freightForm.amount} onChange={(e) => setFreightForm({...freightForm, amount: e.target.value})} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold" />
+                <input type="date" required value={freightForm.date} onChange={(e) => setFreightForm({...freightForm, date: e.target.value})} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+              </div>
+
+              {activeDeviceObj.roleKey !== 'driver1' && (
+                <div>
+                  <label className="text-slate-400 block mb-1">Conductor Asignado</label>
+                  <input 
+                    type="text" 
+                    value={freightForm.driverName}
+                    onChange={(e) => setFreightForm({...freightForm, driverName: e.target.value})}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-slate-400 block mb-1">Estado de Facturación</label>
+                <select 
+                  value={freightForm.invoicingStatus} 
+                  onChange={(e) => setFreightForm({...freightForm, invoicingStatus: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                >
+                  {INVOICE_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={closeModals} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isExpenseModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-4 space-y-3 text-xs">
+            <h3 className="font-bold text-white text-sm">{editingItem ? 'Editar Gasto' : 'Registrar Gasto Operativo'}</h3>
+            <form onSubmit={handleSaveExpense} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <select value={expenseForm.category} onChange={(e) => setExpenseForm({...expenseForm, category: e.target.value})} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white">
+                  {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <input type="number" required placeholder="Monto CLP *" value={expenseForm.amount} onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-rose-400 font-bold" />
+              </div>
+              <input type="text" required placeholder="Descripción breve *" value={expenseForm.description} onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+              <input type="date" required value={expenseForm.date} onChange={(e) => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white" />
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={closeModals} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-rose-600 text-white rounded-xl font-bold">Guardar Gasto</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

@@ -37,6 +37,10 @@
     const Edit = () => <i data-lucide="edit-3" className="w-4 h-4"></i>;
     const LogOut = () => <i data-lucide="log-out" className="w-4 h-4"></i>;
     const Shield = () => <i data-lucide="shield" className="w-4 h-4"></i>;
+    const Camera = () => <i data-lucide="camera" className="w-4 h-4"></i>;
+    const Image = () => <i data-lucide="image" className="w-4 h-4"></i>;
+    const Eye = () => <i data-lucide="eye" className="w-3.5 h-3.5"></i>;
+    const X = () => <i data-lucide="x" className="w-4 h-4"></i>;
 
     const INITIAL_MOVEMENTS = [
       {
@@ -47,7 +51,7 @@
       },
       {
         id: 'exp-201', type: 'expense', category: 'Combustible', amount: 60000, date: '2026-10-25',
-        description: 'Carga Diésel Shell', vehicle: 'Camión Volvo FH 4x2', driverName: 'Emes', createdBy: 'Dispositivo 1 - Emes'
+        description: 'Carga Diésel Shell', vehicle: 'Camión Volvo FH 4x2', driverName: 'Emes', createdBy: 'Dispositivo 1 - Emes', receiptImage: null
       },
       {
         id: 'fl-102', type: 'freight', client: 'Agrocomercial Norte', origin: 'Rancagua',
@@ -57,7 +61,7 @@
       },
       {
         id: 'exp-203', type: 'expense', category: 'Combustible', amount: 110000, date: '2026-10-27',
-        description: 'Estación Copec', vehicle: 'Mercedes-Benz Actros', driverName: 'Conductor 2', createdBy: 'Dispositivo 4 - Conductor 2'
+        description: 'Estación Copec', vehicle: 'Mercedes-Benz Actros', driverName: 'Conductor 2', createdBy: 'Dispositivo 4 - Conductor 2', receiptImage: null
       }
     ];
 
@@ -85,7 +89,6 @@
         return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
       });
 
-      // Claves de acceso para cada perfil (almacenadas localmente o por defecto)
       const [devicePins, setDevicePins] = useState(() => {
         const savedPins = localStorage.getItem('fletes_device_pins');
         if (savedPins) return JSON.parse(savedPins);
@@ -94,7 +97,6 @@
         return initPins;
       });
 
-      // Títulos de KPI editables por Administrador
       const [kpiTitles, setKpiTitles] = useState(() => {
         const savedTitles = localStorage.getItem('fletes_kpi_titles');
         return savedTitles ? JSON.parse(savedTitles) : DEFAULT_KPI_TITLES;
@@ -107,11 +109,14 @@
 
       const [selectedMonth, setSelectedMonth] = useState('2026-10');
       
-      // Modales de Registro y Edición de Administrador
+      // Modales de Registro
       const [isFreightModalOpen, setIsFreightModalOpen] = useState(false);
       const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
       const [isEditKpiModalOpen, setIsEditKpiModalOpen] = useState(false);
       const [isKeysModalOpen, setIsKeysModalOpen] = useState(false);
+      
+      // Modal para ver foto ampliada de la boleta
+      const [selectedReceiptPhoto, setSelectedReceiptPhoto] = useState(null);
 
       // Formularios
       const [freightForm, setFreightForm] = useState({
@@ -121,7 +126,7 @@
 
       const [expenseForm, setExpenseForm] = useState({
         category: EXPENSE_CATEGORIES[0], amount: '', description: '',
-        date: new Date().toISOString().split('T')[0], driverName: 'Emes'
+        date: new Date().toISOString().split('T')[0], driverName: 'Emes', receiptImage: null
       });
 
       const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2], [currentDevice]);
@@ -131,9 +136,8 @@
         localStorage.setItem('fletes_device_pins', JSON.stringify(devicePins));
         localStorage.setItem('fletes_kpi_titles', JSON.stringify(kpiTitles));
         if (window.lucide) window.lucide.createIcons();
-      }, [movements, devicePins, kpiTitles, currentDevice, isAuthenticated, isFreightModalOpen, isExpenseModalOpen, isEditKpiModalOpen, isKeysModalOpen]);
+      }, [movements, devicePins, kpiTitles, currentDevice, isAuthenticated, isFreightModalOpen, isExpenseModalOpen, isEditKpiModalOpen, isKeysModalOpen, selectedReceiptPhoto]);
 
-      // Login al cambiar de dispositivo o enviar clave
       const handleLogin = (e) => {
         e.preventDefault();
         const expectedPin = devicePins[activeDeviceObj.id];
@@ -195,6 +199,18 @@
         setMovements(movements.map(m => m.id === id ? { ...m, invoicingStatus: newStatus } : m));
       };
 
+      // Manejo de carga de foto de boleta
+      const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setExpenseForm(prev => ({ ...prev, receiptImage: reader.result }));
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
       const handleSaveFreight = (e) => {
         e.preventDefault();
         if (!freightForm.client || !freightForm.amount) return;
@@ -226,7 +242,7 @@
 
         setMovements([newItem, ...movements]);
         setIsExpenseModalOpen(false);
-        setExpenseForm({ category: EXPENSE_CATEGORIES[0], amount: '', description: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes' });
+        setExpenseForm({ category: EXPENSE_CATEGORIES[0], amount: '', description: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes', receiptImage: null });
       };
 
       const handleDelete = (id) => {
@@ -244,7 +260,7 @@
                 <div className="p-2 bg-emerald-600 rounded-xl"><Truck /></div>
                 <div>
                   <h1 className="font-bold text-lg">FletesSync</h1>
-                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión con Control de Claves y KPIs</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión con Boletas de Gastos</p>
                 </div>
               </div>
 
@@ -260,7 +276,7 @@
                 {isAuthenticated && (
                   <button 
                     onClick={() => setIsAuthenticated(false)} 
-                    title="Cerrar sesión de perfil"
+                    title="Cerrar sesión"
                     className="p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg border border-slate-700"
                   >
                     <LogOut />
@@ -270,7 +286,7 @@
             </div>
           </header>
 
-          {/* PANTALLA DE BLOQUEO / INGRESO DE CLAVE */}
+          {/* PANTALLA DE BLOQUEO / CLAVE */}
           {!isAuthenticated ? (
             <main className="max-w-md mx-auto mt-16 p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl space-y-5 text-center">
               <div className="w-12 h-12 bg-emerald-950 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400">
@@ -278,7 +294,7 @@
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">{currentDevice}</h2>
-                <p className="text-xs text-slate-400 mt-1">Ingresa tu clave de acceso para continuar</p>
+                <p className="text-xs text-slate-400 mt-1">Ingresa tu clave de acceso</p>
               </div>
 
               <form onSubmit={handleLogin} className="space-y-4">
@@ -299,19 +315,12 @@
                   Ingresar a Dispositivo
                 </button>
               </form>
-
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 text-left space-y-1">
-                <p className="font-bold text-slate-300">📌 Claves por Defecto:</p>
-                <p>• Administrador: <code className="text-purple-400 font-bold">0000</code></p>
-                <p>• Demás perfiles: <code className="text-emerald-400 font-bold">1234</code></p>
-                <p className="text-[10px] text-slate-500 italic mt-1">El Administrador puede modificar estas claves en cualquier momento.</p>
-              </div>
             </main>
           ) : (
-            /* CONTENIDO PRINCIPAL UNA VEZ AUTENTICADO */
+            /* CONTENIDO PRINCIPAL AUTENTICADO */
             <main className="max-w-5xl mx-auto p-4 space-y-6">
               
-              {/* BARRA SUPERIOR: MES Y BOTONES DE ACCIÓN */}
+              {/* BARRA SUPERIOR */}
               <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Clock />
@@ -319,7 +328,6 @@
                   <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer" />
                 </div>
 
-                {/* BOTONES DIRECTOS PARA CREAR Y ADMINISTRAR */}
                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   {activeDeviceObj.roleKey === 'admin' && (
                     <>
@@ -352,7 +360,7 @@
                     onClick={() => setIsExpenseModalOpen(true)}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition"
                   >
-                    <PlusCircle /> + Gasto
+                    <Camera /> + Gasto con Foto
                   </button>
                 </div>
               </div>
@@ -361,16 +369,26 @@
               {activeDeviceObj.roleKey === 'driver2' ? (
                 <div className="space-y-4">
                   <div className="bg-blue-950/40 border border-blue-500/30 p-4 rounded-xl text-xs text-blue-300">
-                    ⚠️ <strong>Conductor 2:</strong> Puedes ingresar tus gastos utilizando el botón rojo superior.
+                    ⚠️ <strong>Conductor 2:</strong> Registra tus gastos y adjunta fotos de las boletas.
                   </div>
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                    <h3 className="font-bold text-sm mb-3">Historial de Gastos Asignados</h3>
+                    <h3 className="font-bold text-sm mb-3">Historial de Gastos con Boleta</h3>
                     <div className="space-y-2">
                       {monthlyMovements.filter(m => m.type === 'expense' && (m.driverName?.includes('Conductor 2') || m.createdBy?.includes('Dispositivo 4'))).map(item => (
                         <div key={item.id} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-white text-xs">{item.category}</span>
-                            <p className="text-[11px] text-slate-400">{item.description}</p>
+                          <div className="flex items-center gap-3">
+                            {item.receiptImage ? (
+                              <button onClick={() => setSelectedReceiptPhoto(item.receiptImage)} className="relative group">
+                                <img src={item.receiptImage} className="w-10 h-10 object-cover rounded-lg border border-rose-500/40" alt="Boleta" />
+                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Eye /></div>
+                              </button>
+                            ) : (
+                              <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center text-slate-600"><Image /></div>
+                            )}
+                            <div>
+                              <span className="font-bold text-white text-xs">{item.category}</span>
+                              <p className="text-[11px] text-slate-400">{item.description}</p>
+                            </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-rose-400">{formatMoney(item.amount)}</span>
@@ -382,10 +400,10 @@
                   </div>
                 </div>
               ) : (
-                /* VISTA GENERAL / ROLES 1, 2 Y 3 */
+                /* VISTA GENERAL ROLES 1, 2 Y 3 */
                 <div className="space-y-6">
                   
-                  {/* TARJETAS DE INDICADORES FINANCIEROS CON NOMBRES DE KPI EDITABLES */}
+                  {/* INDICADORES FINANCIEROS */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
                       <span className="text-xs text-slate-400 font-bold uppercase">{kpiTitles.freights}</span>
@@ -401,7 +419,7 @@
                     </div>
                   </div>
 
-                  {/* BENEFICIOS 50% CON NOMBRES EDITABLES */}
+                  {/* BENEFICIOS 50% */}
                   {activeDeviceObj.roleKey === 'driver1' && (
                     <div className="bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
                       <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{kpiTitles.emesShare}</span>
@@ -429,30 +447,43 @@
                     </div>
                   )}
 
-                  {/* CONTROL DE FACTURACIÓN */}
+                  {/* MOVIMIENTOS Y VISTA DE BOLETAS ADJUNTAS */}
                   <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
                       <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                        <FileText /> Estado de Facturación y Cobros
+                        <FileText /> Movimientos y Comprobantes
                       </h3>
                       <div className="flex gap-4 text-xs">
-                        <span className="text-amber-400 font-bold">Emitidas / Por Cobrar: {formatMoney(metrics.totalIssuedInvoices)}</span>
+                        <span className="text-amber-400 font-bold">Por Cobrar: {formatMoney(metrics.totalIssuedInvoices)}</span>
                         <span className="text-emerald-400 font-bold">Facturas Pagadas: {formatMoney(metrics.totalPaidInvoices)}</span>
                       </div>
                     </div>
 
-                    {/* LISTADO CON CONTROL DE FACTURAS */}
                     <div className="space-y-2">
                       {monthlyMovements.map(item => (
                         <div key={item.id} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-bold text-sm ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`}
-                              </span>
-                              <span className="text-slate-500">• {item.date}</span>
+                          <div className="flex items-center gap-3">
+                            {/* MINIATURA DE FOTO DE BOLETA PARA GASTOS */}
+                            {item.type === 'expense' && (
+                              item.receiptImage ? (
+                                <button onClick={() => setSelectedReceiptPhoto(item.receiptImage)} className="relative group shrink-0" title="Ver foto de boleta">
+                                  <img src={item.receiptImage} className="w-10 h-10 object-cover rounded-lg border border-rose-500/40" alt="Boleta" />
+                                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Eye /></div>
+                                </button>
+                              ) : (
+                                <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-center text-slate-600 shrink-0" title="Sin foto"><Image /></div>
+                              )
+                            )}
+
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-bold text-sm ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`}
+                                </span>
+                                <span className="text-slate-500">• {item.date}</span>
+                              </div>
+                              <p className="text-slate-400 mt-0.5">{item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description}</p>
                             </div>
-                            <p className="text-slate-400 mt-0.5">{item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description}</p>
                           </div>
 
                           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -486,70 +517,74 @@
             </main>
           )}
 
-          {/* MODAL EDITAR NOMBRES DE KPI (SOLO ADMINISTRADOR) */}
-          {isEditKpiModalOpen && (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
-                <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <Edit /> Editar Nombres de KPIs
-                </h3>
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nombre para Total Fletes</label>
-                    <input type="text" value={kpiTitles.freights} onChange={e => setKpiTitles({...kpiTitles, freights: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nombre para Total Gastos</label>
-                    <input type="text" value={kpiTitles.expenses} onChange={e => setKpiTitles({...kpiTitles, expenses: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nombre para Utilidad Neta</label>
-                    <input type="text" value={kpiTitles.netProfit} onChange={e => setKpiTitles({...kpiTitles, netProfit: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nombre para 50% Conductor 1</label>
-                    <input type="text" value={kpiTitles.emesShare} onChange={e => setKpiTitles({...kpiTitles, emesShare: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-emerald-400 font-bold" />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nombre para 50% Dueño</label>
-                    <input type="text" value={kpiTitles.pelaoShare} onChange={e => setKpiTitles({...kpiTitles, pelaoShare: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-amber-400 font-bold" />
-                  </div>
+          {/* VISOR DE FOTO DE BOLETA AMPLIADA */}
+          {selectedReceiptPhoto && (
+            <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReceiptPhoto(null)}>
+              <div className="relative max-w-2xl w-full bg-slate-900 p-3 rounded-2xl border border-slate-800" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
+                  <span className="text-xs font-bold text-white flex items-center gap-2"><Image /> Foto de Boleta / Comprobante</span>
+                  <button onClick={() => setSelectedReceiptPhoto(null)} className="text-slate-400 hover:text-white p-1"><X /></button>
                 </div>
-                <div className="flex justify-end pt-3">
-                  <button onClick={() => setIsEditKpiModalOpen(false)} className="px-5 py-2 bg-purple-600 text-white font-bold text-xs rounded-xl">Guardar Cambios</button>
-                </div>
+                <img src={selectedReceiptPhoto} className="max-h-[75vh] w-full object-contain rounded-xl" alt="Boleta ampliada" />
               </div>
             </div>
           )}
 
-          {/* MODAL CONTROL DE CLAVES DE ACCESO (SOLO ADMINISTRADOR) */}
-          {isKeysModalOpen && (
+          {/* MODAL INGRESAR GASTO CON FOTO DE BOLETA */}
+          {isExpenseModalOpen && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <Shield /> Administrar Claves por Dispositivo
+                  <Camera /> Ingresar Gasto con Foto de Boleta
                 </h3>
-                <div className="space-y-3 text-xs">
-                  {DEFAULT_DEVICES.map(dev => (
-                    <div key={dev.id} className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
-                      <span className="font-bold text-slate-200 block">{dev.name}</span>
-                      <p className="text-[10px] text-slate-400">{dev.role}</p>
-                      <div className="flex items-center gap-2 pt-1">
-                        <label className="text-slate-400 text-[11px]">Clave / PIN:</label>
-                        <input 
-                          type="text" 
-                          maxLength={10}
-                          value={devicePins[dev.id] || ''} 
-                          onChange={(e) => setDevicePins({...devicePins, [dev.id]: e.target.value})} 
-                          className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-bold text-center w-28 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
+                <form onSubmit={handleSaveExpense} className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 block mb-1">Categoría</label>
+                    <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                      {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Descripción Breve *</label>
+                    <input type="text" required value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" placeholder="Ej: Carga Diésel Shell / Peajes" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-slate-400 block mb-1">Monto CLP *</label>
+                      <input type="number" required value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-rose-400 font-bold" placeholder="50000" />
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-end pt-3">
-                  <button onClick={() => setIsKeysModalOpen(false)} className="px-5 py-2 bg-amber-600 text-white font-bold text-xs rounded-xl">Guardar Claves</button>
-                </div>
+                    <div>
+                      <label className="text-slate-400 block mb-1">Fecha</label>
+                      <input type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
+                    </div>
+                  </div>
+
+                  {/* CARGA / CAPTURA DE FOTO DE BOLETA */}
+                  <div>
+                    <label className="text-slate-400 block mb-1">Adjuntar Foto de Boleta / Comprobante</label>
+                    <label className="flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-800 border border-dashed border-slate-700 rounded-xl p-3 text-slate-300 cursor-pointer transition">
+                      <Camera />
+                      <span className="font-semibold">{expenseForm.receiptImage ? 'Cambiar Foto de Boleta' : 'Tomar Foto o Subir Boleta'}</span>
+                      <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
+                    </label>
+
+                    {/* VISTA PREVIA DE LA FOTO SELECCIONADA */}
+                    {expenseForm.receiptImage && (
+                      <div className="mt-2 relative bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <img src={expenseForm.receiptImage} className="w-12 h-12 object-cover rounded-lg" alt="Vista previa" />
+                          <span className="text-[11px] text-emerald-400 font-bold">✓ Foto adjunta</span>
+                        </div>
+                        <button type="button" onClick={() => setExpenseForm({...expenseForm, receiptImage: null})} className="text-slate-500 hover:text-rose-400 p-1"><X /></button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3">
+                    <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
+                    <button type="submit" className="px-4 py-2 bg-rose-600 text-white font-bold rounded-xl">Guardar Gasto</button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
@@ -599,37 +634,70 @@
             </div>
           )}
 
-          {/* MODAL INGRESAR GASTO */}
-          {isExpenseModalOpen && (
+          {/* MODAL EDITAR NOMBRES DE KPI */}
+          {isEditKpiModalOpen && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
-                <h3 className="font-bold text-base text-white">Ingresar Nuevo Gasto Operativo</h3>
-                <form onSubmit={handleSaveExpense} className="space-y-3 text-xs">
+                <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <Edit /> Editar Nombres de KPIs
+                </h3>
+                <div className="space-y-3 text-xs">
                   <div>
-                    <label className="text-slate-400 block mb-1">Categoría</label>
-                    <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
-                      {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <label className="text-slate-400 block mb-1">Nombre para Total Fletes</label>
+                    <input type="text" value={kpiTitles.freights} onChange={e => setKpiTitles({...kpiTitles, freights: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
                   </div>
                   <div>
-                    <label className="text-slate-400 block mb-1">Descripción Breve *</label>
-                    <input type="text" required value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" placeholder="Ej: Peajes Ruta 68 / Carga Diésel" />
+                    <label className="text-slate-400 block mb-1">Nombre para Total Gastos</label>
+                    <input type="text" value={kpiTitles.expenses} onChange={e => setKpiTitles({...kpiTitles, expenses: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-slate-400 block mb-1">Monto CLP *</label>
-                      <input type="number" required value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-rose-400 font-bold" placeholder="50000" />
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para Utilidad Neta</label>
+                    <input type="text" value={kpiTitles.netProfit} onChange={e => setKpiTitles({...kpiTitles, netProfit: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para 50% Conductor 1</label>
+                    <input type="text" value={kpiTitles.emesShare} onChange={e => setKpiTitles({...kpiTitles, emesShare: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-emerald-400 font-bold" />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para 50% Dueño</label>
+                    <input type="text" value={kpiTitles.pelaoShare} onChange={e => setKpiTitles({...kpiTitles, pelaoShare: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-amber-400 font-bold" />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-3">
+                  <button onClick={() => setIsEditKpiModalOpen(false)} className="px-5 py-2 bg-purple-600 text-white font-bold text-xs rounded-xl">Guardar Cambios</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL CONTROL DE CLAVES */}
+          {isKeysModalOpen && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
+                <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <Shield /> Administrar Claves por Dispositivo
+                </h3>
+                <div className="space-y-3 text-xs">
+                  {DEFAULT_DEVICES.map(dev => (
+                    <div key={dev.id} className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                      <span className="font-bold text-slate-200 block">{dev.name}</span>
+                      <p className="text-[10px] text-slate-400">{dev.role}</p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <label className="text-slate-400 text-[11px]">Clave / PIN:</label>
+                        <input 
+                          type="text" 
+                          maxLength={10}
+                          value={devicePins[dev.id] || ''} 
+                          onChange={(e) => setDevicePins({...devicePins, [dev.id]: e.target.value})} 
+                          className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-bold text-center w-28 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-slate-400 block mb-1">Fecha</label>
-                      <input type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 pt-3">
-                    <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">Cancelar</button>
-                    <button type="submit" className="px-4 py-2 bg-rose-600 text-white font-bold rounded-xl">Guardar Gasto</button>
-                  </div>
-                </form>
+                  ))}
+                </div>
+                <div className="flex justify-end pt-3">
+                  <button onClick={() => setIsKeysModalOpen(false)} className="px-5 py-2 bg-amber-600 text-white font-bold text-xs rounded-xl">Guardar Claves</button>
+                </div>
               </div>
             </div>
           )}
@@ -644,16 +712,12 @@
 </html>
 ```eof
 
-### Nuevas características agregadas:
+### ¿Cómo actualizar en tu GitHub?
+1. Abre tu repositorio: **`[https://github.com/gamring/Emes-Pelao](https://github.com/gamring/Emes-Pelao)`**
+2. Entra al archivo **`index.html`** y presiona el botón del **lápiz (Edit file)**.
+3. Reemplaza todo el código viejo con este nuevo bloque y haz clic en **`Commit changes...`**.
 
-1. **Ingreso con Clave / PIN por Perfil**:
-   * Cada dispositivo/perfil requiere una contraseña para ingresar a su interfaz.
-   * **Claves iniciales por defecto**:
-     * Administrador: **`0000`**
-     * Dispositivo 1, 2 y 4: **`1234`**
-2. **Control General de Claves (Solo Administrador)**:
-   * Se agregó el botón **`Control Claves`** (color ámbar) en la barra superior para el Administrador.
-   * Permite consultar y modificar en cualquier momento las contraseñas de los 4 perfiles.
-3. **Edición de Nombres de KPIs (Solo Administrador)**:
-   * Se agregó el botón **`Nombres KPI`** (color púrpura) disponible para el Administrador.
-   * Permite personalizar en tiempo real los textos de las tarjetas principales: *Total Fletes*, *Total Gastos*, *Utilidad Neta*, *50% EMES* y *50% PELAO*.
+### Novedades implementadas:
+1. **Captura directa con cámara en celulares**: Al presionar **`+ Gasto con Foto`**, el botón permite abrir la cámara del celular o seleccionar una imagen guardada.
+2. **Vista previa antes de guardar**: Muestra la miniatura de la boleta adjunta.
+3. **Visor de Boletas en pantalla completa**: Al hacer clic sobre cualquier miniatura en el historial, la foto se amplía para poder leer los datos del comprobante.

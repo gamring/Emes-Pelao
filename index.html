@@ -32,19 +32,17 @@
     const PlusCircle = () => <i data-lucide="plus-circle" className="w-4 h-4"></i>;
     const FileText = () => <i data-lucide="file-text" className="w-4 h-4"></i>;
     const Trash2 = () => <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>;
-    const CheckCircle = () => <i data-lucide="check-circle" className="w-4 h-4"></i>;
-    const Clock3 = () => <i data-lucide="clock-3" className="w-4 h-4"></i>;
 
     const INITIAL_MOVEMENTS = [
       {
         id: 'fl-101', type: 'freight', client: 'Constructora Del Sol', origin: 'Santiago Central',
         destination: 'Valparaíso Puerto', amount: 300000, vehicle: 'Camión Volvo FH 4x2',
-        driverName: 'Conductor 1', date: '2026-10-25', status: 'Completado',
-        invoicingStatus: 'Factura Pagada', paymentStatus: 'Pagado', notes: 'Encofrados metálicos.', createdBy: 'Dispositivo 1 - Conductor 1'
+        driverName: 'Emes', date: '2026-10-25', status: 'Completado',
+        invoicingStatus: 'Factura Pagada', paymentStatus: 'Pagado', notes: 'Encofrados metálicos.', createdBy: 'Dispositivo 1 - Emes'
       },
       {
         id: 'exp-201', type: 'expense', category: 'Combustible', amount: 60000, date: '2026-10-25',
-        description: 'Carga Diésel Shell', vehicle: 'Camión Volvo FH 4x2', driverName: 'Conductor 1', createdBy: 'Dispositivo 1 - Conductor 1'
+        description: 'Carga Diésel Shell', vehicle: 'Camión Volvo FH 4x2', driverName: 'Emes', createdBy: 'Dispositivo 1 - Emes'
       },
       {
         id: 'fl-102', type: 'freight', client: 'Agrocomercial Norte', origin: 'Rancagua',
@@ -59,8 +57,8 @@
     ];
 
     const DEVICES = [
-      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Conductor 1', role: 'Conductor (50% Beneficio Total)' },
-      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Dueño del Camión', role: 'Dueño (50% Beneficio Total)' },
+      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (50% Beneficio Total)' },
+      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Pelao', role: 'Pelao (50% Beneficio Total)' },
       { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total & Facturación' },
       { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos' }
     ];
@@ -74,7 +72,7 @@
         return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
       });
 
-      const [currentDevice, setCurrentDevice] = useState(DEVICES[2].name); // Admin por defecto
+      const [currentDevice, setCurrentDevice] = useState(DEVICES[2].name);
       const [selectedMonth, setSelectedMonth] = useState('2026-10');
       
       // Modales de Registro
@@ -84,12 +82,12 @@
       // Formularios
       const [freightForm, setFreightForm] = useState({
         client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0],
-        driverName: 'Conductor 1', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado'
+        driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado'
       });
 
       const [expenseForm, setExpenseForm] = useState({
         category: EXPENSE_CATEGORIES[0], amount: '', description: '',
-        date: new Date().toISOString().split('T')[0], driverName: 'Conductor 1'
+        date: new Date().toISOString().split('T')[0], driverName: 'Emes'
       });
 
       const activeDeviceObj = useMemo(() => DEVICES.find(d => d.name === currentDevice) || DEVICES[2], [currentDevice]);
@@ -128,8 +126,8 @@
           totalFreights,
           totalExpenses,
           netTotal,
-          ownerShare: halfShare,
-          driver1Share: halfShare,
+          ownerShare: halfShare,   // 50% para Pelao
+          driver1Share: halfShare, // 50% para Emes
           totalIssuedInvoices,
           totalPaidInvoices
         };
@@ -157,7 +155,7 @@
 
         setMovements([newItem, ...movements]);
         setIsFreightModalOpen(false);
-        setFreightForm({ client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0], driverName: 'Conductor 1', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado' });
+        setFreightForm({ client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado' });
       };
 
       // Guardar Gasto Nuevo
@@ -175,7 +173,7 @@
 
         setMovements([newItem, ...movements]);
         setIsExpenseModalOpen(false);
-        setExpenseForm({ category: EXPENSE_CATEGORIES[0], amount: '', description: '', date: new Date().toISOString().split('T')[0], driverName: 'Conductor 1' });
+        setExpenseForm({ category: EXPENSE_CATEGORIES[0], amount: '', description: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes' });
       };
 
       const handleDelete = (id) => {
@@ -193,7 +191,7 @@
                 <div className="p-2 bg-emerald-600 rounded-xl"><Truck /></div>
                 <div>
                   <h1 className="font-bold text-lg">FletesSync</h1>
-                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión de Fletes, Gastos y Facturas</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión de Fletes • Emes & Pelao</p>
                 </div>
               </div>
 
@@ -209,7 +207,7 @@
 
           <main className="max-w-5xl mx-auto p-4 space-y-6">
             
-            {/* BARRA SUPERIOR: MES Y BOTONES DE INGRESO DIRECTO */}
+            {/* BARRA SUPERIOR */}
             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <Clock />
@@ -217,7 +215,6 @@
                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer" />
               </div>
 
-              {/* BOTONES DIRECTOS PARA CREAR REGISTROS */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 {activeDeviceObj.roleKey !== 'driver2' && (
                   <button 
@@ -280,17 +277,17 @@
                   </div>
                 </div>
 
-                {/* BENEFICIOS 50% */}
+                {/* BENEFICIOS 50% CON NOMBRES EMES Y PELAO */}
                 {activeDeviceObj.roleKey === 'driver1' && (
                   <div className="bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">TU BENEFICIO 50% (Conductor 1)</span>
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">50% EMES</span>
                     <p className="text-3xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
                   </div>
                 )}
 
                 {activeDeviceObj.roleKey === 'owner' && (
                   <div className="bg-amber-950/30 border border-amber-500/40 p-4 rounded-2xl shadow-lg">
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">TU BENEFICIO 50% (Dueño Camión)</span>
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">50% PELAO</span>
                     <p className="text-3xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
                   </div>
                 )}
@@ -298,17 +295,17 @@
                 {activeDeviceObj.roleKey === 'admin' && (
                   <div className="bg-purple-950/30 border border-purple-500/40 p-4 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">50% Conductor 1</span>
+                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">50% EMES</span>
                       <p className="text-2xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">50% Dueño del Camión</span>
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">50% PELAO</span>
                       <p className="text-2xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
                     </div>
                   </div>
                 )}
 
-                {/* CONTROL DE FACTURACIÓN (EMITIDAS Y PAGADAS) */}
+                {/* CONTROL DE FACTURACIÓN */}
                 <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
                     <h3 className="font-bold text-sm text-white flex items-center gap-2">
@@ -335,7 +332,6 @@
                         </div>
 
                         <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                          {/* Selector de estado de factura para Fletes */}
                           {item.type === 'freight' && (
                             <select
                               value={item.invoicingStatus || 'No Facturado'}
@@ -455,14 +451,7 @@
 </html>
 ```eof
 
-
----
-
-### Lo que verás en pantalla al recargar la web:
-1. **Botón Verde `+ Ingresar Flete`**: Abre la ventana flotante para ingresar fletes nuevos con su cliente, monto, origen, destino y fecha.
-2. **Botón Rojo `+ Ingresar Gasto`**: Permite ingresar combustible, peajes, viáticos y reparaciones.
-3. **Módulo de Facturación**: Cada flete ahora incluye una casilla desplegable para cambiar entre:
-   * **`No Facturado`**
-   * **`Factura Emitida (Pendiente)`**
-   * **`Factura Pagada`**
-4. **Totales de Facturas**: Se muestra en tiempo real el monto total acumulado de facturas emitidas por cobrar y facturas ya pagadas.
+### Cambios realizados:
+1. **Dispositivo 1**: Actualizado a **Emes** (`50% EMES`).
+2. **Dispositivo 2**: Actualizado a **Pelao** (`50% PELAO`).
+3. **Selector de Dispositivos y Vista del Administrador**: Muestra claramente el reparto 50/50 entre **Emes** y **Pelao**.

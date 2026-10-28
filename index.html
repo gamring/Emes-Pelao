@@ -32,6 +32,11 @@
     const PlusCircle = () => <i data-lucide="plus-circle" className="w-4 h-4"></i>;
     const FileText = () => <i data-lucide="file-text" className="w-4 h-4"></i>;
     const Trash2 = () => <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>;
+    const Lock = () => <i data-lucide="lock" className="w-4 h-4"></i>;
+    const Key = () => <i data-lucide="key" className="w-4 h-4"></i>;
+    const Edit = () => <i data-lucide="edit-3" className="w-4 h-4"></i>;
+    const LogOut = () => <i data-lucide="log-out" className="w-4 h-4"></i>;
+    const Shield = () => <i data-lucide="shield" className="w-4 h-4"></i>;
 
     const INITIAL_MOVEMENTS = [
       {
@@ -56,12 +61,20 @@
       }
     ];
 
-    const DEVICES = [
-      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (50% Beneficio Total)' },
-      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Pelao', role: 'Pelao (50% Beneficio Total)' },
-      { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total & Facturación' },
-      { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos' }
+    const DEFAULT_DEVICES = [
+      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (50% Beneficio Total)', defaultPin: '1234' },
+      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Pelao', role: 'Pelao (50% Beneficio Total)', defaultPin: '1234' },
+      { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total & Facturación', defaultPin: '0000' },
+      { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos', defaultPin: '1234' }
     ];
+
+    const DEFAULT_KPI_TITLES = {
+      freights: 'Total Fletes',
+      expenses: 'Total Gastos',
+      netProfit: 'Utilidad Neta Total',
+      emesShare: '50% EMES',
+      pelaoShare: '50% PELAO'
+    };
 
     const EXPENSE_CATEGORIES = ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'];
     const INVOICE_STATUSES = ['No Facturado', 'Factura Emitida (Pendiente)', 'Factura Pagada'];
@@ -72,12 +85,33 @@
         return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
       });
 
-      const [currentDevice, setCurrentDevice] = useState(DEVICES[2].name);
+      // Claves de acceso para cada perfil (almacenadas localmente o por defecto)
+      const [devicePins, setDevicePins] = useState(() => {
+        const savedPins = localStorage.getItem('fletes_device_pins');
+        if (savedPins) return JSON.parse(savedPins);
+        const initPins = {};
+        DEFAULT_DEVICES.forEach(d => initPins[d.id] = d.defaultPin);
+        return initPins;
+      });
+
+      // Títulos de KPI editables por Administrador
+      const [kpiTitles, setKpiTitles] = useState(() => {
+        const savedTitles = localStorage.getItem('fletes_kpi_titles');
+        return savedTitles ? JSON.parse(savedTitles) : DEFAULT_KPI_TITLES;
+      });
+
+      const [currentDevice, setCurrentDevice] = useState(DEFAULT_DEVICES[2].name);
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [pinInput, setPinInput] = useState('');
+      const [loginError, setLoginError] = useState('');
+
       const [selectedMonth, setSelectedMonth] = useState('2026-10');
       
-      // Modales de Registro
+      // Modales de Registro y Edición de Administrador
       const [isFreightModalOpen, setIsFreightModalOpen] = useState(false);
       const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+      const [isEditKpiModalOpen, setIsEditKpiModalOpen] = useState(false);
+      const [isKeysModalOpen, setIsKeysModalOpen] = useState(false);
 
       // Formularios
       const [freightForm, setFreightForm] = useState({
@@ -90,16 +124,38 @@
         date: new Date().toISOString().split('T')[0], driverName: 'Emes'
       });
 
-      const activeDeviceObj = useMemo(() => DEVICES.find(d => d.name === currentDevice) || DEVICES[2], [currentDevice]);
+      const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2], [currentDevice]);
 
       useEffect(() => {
         localStorage.setItem('fletes_movements', JSON.stringify(movements));
+        localStorage.setItem('fletes_device_pins', JSON.stringify(devicePins));
+        localStorage.setItem('fletes_kpi_titles', JSON.stringify(kpiTitles));
         if (window.lucide) window.lucide.createIcons();
-      }, [movements, currentDevice, isFreightModalOpen, isExpenseModalOpen]);
+      }, [movements, devicePins, kpiTitles, currentDevice, isAuthenticated, isFreightModalOpen, isExpenseModalOpen, isEditKpiModalOpen, isKeysModalOpen]);
+
+      // Login al cambiar de dispositivo o enviar clave
+      const handleLogin = (e) => {
+        e.preventDefault();
+        const expectedPin = devicePins[activeDeviceObj.id];
+        if (pinInput === expectedPin) {
+          setIsAuthenticated(true);
+          setLoginError('');
+          setPinInput('');
+        } else {
+          setLoginError('Clave incorrecta. Solicita acceso al Administrador.');
+        }
+      };
+
+      const handleDeviceSwitch = (deviceName) => {
+        setCurrentDevice(deviceName);
+        setIsAuthenticated(false);
+        setPinInput('');
+        setLoginError('');
+      };
 
       const monthlyMovements = useMemo(() => movements.filter(m => m.date && m.date.startsWith(selectedMonth)), [movements, selectedMonth]);
 
-      // Métricas globales y estado de Facturación
+      // Métricas globales
       const metrics = useMemo(() => {
         let totalFreights = 0, totalExpenses = 0;
         let totalIssuedInvoices = 0, totalPaidInvoices = 0;
@@ -126,8 +182,8 @@
           totalFreights,
           totalExpenses,
           netTotal,
-          ownerShare: halfShare,   // 50% para Pelao
-          driver1Share: halfShare, // 50% para Emes
+          ownerShare: halfShare,
+          driver1Share: halfShare,
           totalIssuedInvoices,
           totalPaidInvoices
         };
@@ -135,12 +191,10 @@
 
       const formatMoney = (val) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(val);
 
-      // Cambiar Estado de Factura directamente
       const handleInvoiceStatusChange = (id, newStatus) => {
         setMovements(movements.map(m => m.id === id ? { ...m, invoicingStatus: newStatus } : m));
       };
 
-      // Guardar Flete Nuevo
       const handleSaveFreight = (e) => {
         e.preventDefault();
         if (!freightForm.client || !freightForm.amount) return;
@@ -158,7 +212,6 @@
         setFreightForm({ client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado' });
       };
 
-      // Guardar Gasto Nuevo
       const handleSaveExpense = (e) => {
         e.preventDefault();
         if (!expenseForm.amount || !expenseForm.description) return;
@@ -191,175 +244,315 @@
                 <div className="p-2 bg-emerald-600 rounded-xl"><Truck /></div>
                 <div>
                   <h1 className="font-bold text-lg">FletesSync</h1>
-                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión de Fletes • Emes & Pelao</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Gestión con Control de Claves y KPIs</p>
                 </div>
-              </div>
-
-              <select 
-                value={currentDevice} 
-                onChange={(e) => setCurrentDevice(e.target.value)}
-                className="bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700 rounded-lg p-2 focus:outline-none"
-              >
-                {DEVICES.map(d => <option key={d.id} value={d.name}>{d.name} ({d.role})</option>)}
-              </select>
-            </div>
-          </header>
-
-          <main className="max-w-5xl mx-auto p-4 space-y-6">
-            
-            {/* BARRA SUPERIOR */}
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Clock />
-                <span className="text-xs text-slate-400">Mes:</span>
-                <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer" />
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                {activeDeviceObj.roleKey !== 'driver2' && (
+                <select 
+                  value={currentDevice} 
+                  onChange={(e) => handleDeviceSwitch(e.target.value)}
+                  className="bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700 rounded-lg p-2 focus:outline-none w-full sm:w-auto"
+                >
+                  {DEFAULT_DEVICES.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                </select>
+
+                {isAuthenticated && (
                   <button 
-                    onClick={() => setIsFreightModalOpen(true)}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg transition"
+                    onClick={() => setIsAuthenticated(false)} 
+                    title="Cerrar sesión de perfil"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg border border-slate-700"
                   >
-                    <PlusCircle /> + Ingresar Flete
+                    <LogOut />
                   </button>
                 )}
-                <button 
-                  onClick={() => setIsExpenseModalOpen(true)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg transition"
-                >
-                  <PlusCircle /> + Ingresar Gasto
-                </button>
               </div>
             </div>
+          </header>
 
-            {/* VISTA CONDUCTOR 4 / DISPOSITIVO 4 */}
-            {activeDeviceObj.roleKey === 'driver2' ? (
-              <div className="space-y-4">
-                <div className="bg-blue-950/40 border border-blue-500/30 p-4 rounded-xl text-xs text-blue-300">
-                  ⚠️ <strong>Conductor 2:</strong> Puedes ingresar tus gastos usando el botón rojo superior.
+          {/* PANTALLA DE BLOQUEO / INGRESO DE CLAVE */}
+          {!isAuthenticated ? (
+            <main className="max-w-md mx-auto mt-16 p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl space-y-5 text-center">
+              <div className="w-12 h-12 bg-emerald-950 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400">
+                <Lock />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">{currentDevice}</h2>
+                <p className="text-xs text-slate-400 mt-1">Ingresa tu clave de acceso para continuar</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <input 
+                  type="password" 
+                  maxLength={10} 
+                  required 
+                  autoFocus
+                  placeholder="Ingresa PIN / Clave" 
+                  value={pinInput} 
+                  onChange={(e) => setPinInput(e.target.value)} 
+                  className="w-full text-center bg-slate-950 border border-slate-800 rounded-xl py-3 text-lg font-bold text-emerald-400 focus:outline-none focus:border-emerald-500 tracking-widest"
+                />
+
+                {loginError && <p className="text-xs text-rose-400 font-bold">{loginError}</p>}
+
+                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-3 rounded-xl text-xs uppercase tracking-wider text-white transition">
+                  Ingresar a Dispositivo
+                </button>
+              </form>
+
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 text-left space-y-1">
+                <p className="font-bold text-slate-300">📌 Claves por Defecto:</p>
+                <p>• Administrador: <code className="text-purple-400 font-bold">0000</code></p>
+                <p>• Demás perfiles: <code className="text-emerald-400 font-bold">1234</code></p>
+                <p className="text-[10px] text-slate-500 italic mt-1">El Administrador puede modificar estas claves en cualquier momento.</p>
+              </div>
+            </main>
+          ) : (
+            /* CONTENIDO PRINCIPAL UNA VEZ AUTENTICADO */
+            <main className="max-w-5xl mx-auto p-4 space-y-6">
+              
+              {/* BARRA SUPERIOR: MES Y BOTONES DE ACCIÓN */}
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Clock />
+                  <span className="text-xs text-slate-400">Mes:</span>
+                  <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer" />
                 </div>
-                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                  <h3 className="font-bold text-sm mb-3">Historial de Gastos Asignados</h3>
-                  <div className="space-y-2">
-                    {monthlyMovements.filter(m => m.type === 'expense' && (m.driverName?.includes('Conductor 2') || m.createdBy?.includes('Dispositivo 4'))).map(item => (
-                      <div key={item.id} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                          <span className="font-bold text-white text-xs">{item.category}</span>
-                          <p className="text-[11px] text-slate-400">{item.description}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-rose-400">{formatMoney(item.amount)}</span>
-                          <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400"><Trash2 /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+
+                {/* BOTONES DIRECTOS PARA CREAR Y ADMINISTRAR */}
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  {activeDeviceObj.roleKey === 'admin' && (
+                    <>
+                      <button 
+                        onClick={() => setIsEditKpiModalOpen(true)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-purple-900 hover:bg-purple-800 border border-purple-500/40 text-purple-200 font-bold text-xs px-3 py-2 rounded-xl transition"
+                      >
+                        <Edit /> Nombres KPI
+                      </button>
+
+                      <button 
+                        onClick={() => setIsKeysModalOpen(true)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-amber-900 hover:bg-amber-800 border border-amber-500/40 text-amber-200 font-bold text-xs px-3 py-2 rounded-xl transition"
+                      >
+                        <Key /> Control Claves
+                      </button>
+                    </>
+                  )}
+
+                  {activeDeviceObj.roleKey !== 'driver2' && (
+                    <button 
+                      onClick={() => setIsFreightModalOpen(true)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition"
+                    >
+                      <PlusCircle /> + Flete
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={() => setIsExpenseModalOpen(true)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition"
+                  >
+                    <PlusCircle /> + Gasto
+                  </button>
                 </div>
               </div>
-            ) : (
-              /* VISTA GENERAL / ROLES 1, 2 Y 3 */
-              <div className="space-y-6">
-                
-                {/* TARJETAS DE INDICADORES FINANCIEROS */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-400">Total Fletes</span>
-                    <p className="text-xl font-bold text-emerald-400 mt-1">{formatMoney(metrics.totalFreights)}</p>
+
+              {/* VISTA CONDUCTOR 4 / DISPOSITIVO 4 */}
+              {activeDeviceObj.roleKey === 'driver2' ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-950/40 border border-blue-500/30 p-4 rounded-xl text-xs text-blue-300">
+                    ⚠️ <strong>Conductor 2:</strong> Puedes ingresar tus gastos utilizando el botón rojo superior.
                   </div>
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-400">Total Gastos</span>
-                    <p className="text-xl font-bold text-rose-400 mt-1">{formatMoney(metrics.totalExpenses)}</p>
-                  </div>
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-400">Utilidad Neta Total</span>
-                    <p className="text-xl font-bold text-white mt-1">{formatMoney(metrics.netTotal)}</p>
-                  </div>
-                </div>
-
-                {/* BENEFICIOS 50% CON NOMBRES EMES Y PELAO */}
-                {activeDeviceObj.roleKey === 'driver1' && (
-                  <div className="bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">50% EMES</span>
-                    <p className="text-3xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
-                  </div>
-                )}
-
-                {activeDeviceObj.roleKey === 'owner' && (
-                  <div className="bg-amber-950/30 border border-amber-500/40 p-4 rounded-2xl shadow-lg">
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">50% PELAO</span>
-                    <p className="text-3xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
-                  </div>
-                )}
-
-                {activeDeviceObj.roleKey === 'admin' && (
-                  <div className="bg-purple-950/30 border border-purple-500/40 p-4 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">50% EMES</span>
-                      <p className="text-2xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">50% PELAO</span>
-                      <p className="text-2xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* CONTROL DE FACTURACIÓN */}
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
-                    <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                      <FileText /> Estado de Facturación y Cobros
-                    </h3>
-                    <div className="flex gap-4 text-xs">
-                      <span className="text-amber-400 font-bold">Emitidas / Por Cobrar: {formatMoney(metrics.totalIssuedInvoices)}</span>
-                      <span className="text-emerald-400 font-bold">Facturas Pagadas: {formatMoney(metrics.totalPaidInvoices)}</span>
-                    </div>
-                  </div>
-
-                  {/* LISTADO CON CONTROL DE FACTURAS */}
-                  <div className="space-y-2">
-                    {monthlyMovements.map(item => (
-                      <div key={item.id} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-bold text-sm ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`}
-                            </span>
-                            <span className="text-slate-500">• {item.date}</span>
+                    <h3 className="font-bold text-sm mb-3">Historial de Gastos Asignados</h3>
+                    <div className="space-y-2">
+                      {monthlyMovements.filter(m => m.type === 'expense' && (m.driverName?.includes('Conductor 2') || m.createdBy?.includes('Dispositivo 4'))).map(item => (
+                        <div key={item.id} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                          <div>
+                            <span className="font-bold text-white text-xs">{item.category}</span>
+                            <p className="text-[11px] text-slate-400">{item.description}</p>
                           </div>
-                          <p className="text-slate-400 mt-0.5">{item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description}</p>
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-rose-400">{formatMoney(item.amount)}</span>
+                            <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400"><Trash2 /></button>
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                          {item.type === 'freight' && (
-                            <select
-                              value={item.invoicingStatus || 'No Facturado'}
-                              onChange={(e) => handleInvoiceStatusChange(item.id, e.target.value)}
-                              className={`text-xs font-bold border rounded-lg px-2.5 py-1 focus:outline-none cursor-pointer ${
-                                item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 border-emerald-500 text-emerald-300' :
-                                item.invoicingStatus === 'Factura Emitida (Pendiente)' ? 'bg-amber-950 border-amber-500 text-amber-300' :
-                                'bg-slate-900 border-slate-700 text-slate-300'
-                              }`}
-                            >
-                              {INVOICE_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                            </select>
-                          )}
-
-                          <span className={`font-bold text-sm ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {item.type === 'freight' ? '+' : '-'}{formatMoney(item.amount)}
-                          </span>
-
-                          <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400 p-1"><Trash2 /></button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
+              ) : (
+                /* VISTA GENERAL / ROLES 1, 2 Y 3 */
+                <div className="space-y-6">
+                  
+                  {/* TARJETAS DE INDICADORES FINANCIEROS CON NOMBRES DE KPI EDITABLES */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                      <span className="text-xs text-slate-400 font-bold uppercase">{kpiTitles.freights}</span>
+                      <p className="text-xl font-bold text-emerald-400 mt-1">{formatMoney(metrics.totalFreights)}</p>
+                    </div>
+                    <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                      <span className="text-xs text-slate-400 font-bold uppercase">{kpiTitles.expenses}</span>
+                      <p className="text-xl font-bold text-rose-400 mt-1">{formatMoney(metrics.totalExpenses)}</p>
+                    </div>
+                    <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                      <span className="text-xs text-slate-400 font-bold uppercase">{kpiTitles.netProfit}</span>
+                      <p className="text-xl font-bold text-white mt-1">{formatMoney(metrics.netTotal)}</p>
+                    </div>
+                  </div>
 
+                  {/* BENEFICIOS 50% CON NOMBRES EDITABLES */}
+                  {activeDeviceObj.roleKey === 'driver1' && (
+                    <div className="bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-2xl shadow-lg">
+                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{kpiTitles.emesShare}</span>
+                      <p className="text-3xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
+                    </div>
+                  )}
+
+                  {activeDeviceObj.roleKey === 'owner' && (
+                    <div className="bg-amber-950/30 border border-amber-500/40 p-4 rounded-2xl shadow-lg">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">{kpiTitles.pelaoShare}</span>
+                      <p className="text-3xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
+                    </div>
+                  )}
+
+                  {activeDeviceObj.roleKey === 'admin' && (
+                    <div className="bg-purple-950/30 border border-purple-500/40 p-4 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">{kpiTitles.emesShare}</span>
+                        <p className="text-2xl font-black text-emerald-300 mt-1">{formatMoney(metrics.driver1Share)}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">{kpiTitles.pelaoShare}</span>
+                        <p className="text-2xl font-black text-amber-300 mt-1">{formatMoney(metrics.ownerShare)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CONTROL DE FACTURACIÓN */}
+                  <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
+                      <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                        <FileText /> Estado de Facturación y Cobros
+                      </h3>
+                      <div className="flex gap-4 text-xs">
+                        <span className="text-amber-400 font-bold">Emitidas / Por Cobrar: {formatMoney(metrics.totalIssuedInvoices)}</span>
+                        <span className="text-emerald-400 font-bold">Facturas Pagadas: {formatMoney(metrics.totalPaidInvoices)}</span>
+                      </div>
+                    </div>
+
+                    {/* LISTADO CON CONTROL DE FACTURAS */}
+                    <div className="space-y-2">
+                      {monthlyMovements.map(item => (
+                        <div key={item.id} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold text-sm ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`}
+                              </span>
+                              <span className="text-slate-500">• {item.date}</span>
+                            </div>
+                            <p className="text-slate-400 mt-0.5">{item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description}</p>
+                          </div>
+
+                          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                            {item.type === 'freight' && (
+                              <select
+                                value={item.invoicingStatus || 'No Facturado'}
+                                onChange={(e) => handleInvoiceStatusChange(item.id, e.target.value)}
+                                className={`text-xs font-bold border rounded-lg px-2.5 py-1 focus:outline-none cursor-pointer ${
+                                  item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 border-emerald-500 text-emerald-300' :
+                                  item.invoicingStatus === 'Factura Emitida (Pendiente)' ? 'bg-amber-950 border-amber-500 text-amber-300' :
+                                  'bg-slate-900 border-slate-700 text-slate-300'
+                                }`}
+                              >
+                                {INVOICE_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+                              </select>
+                            )}
+
+                            <span className={`font-bold text-sm ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {item.type === 'freight' ? '+' : '-'}{formatMoney(item.amount)}
+                            </span>
+
+                            <button onClick={() => handleDelete(item.id)} className="text-slate-500 hover:text-rose-400 p-1"><Trash2 /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </main>
+          )}
+
+          {/* MODAL EDITAR NOMBRES DE KPI (SOLO ADMINISTRADOR) */}
+          {isEditKpiModalOpen && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
+                <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <Edit /> Editar Nombres de KPIs
+                </h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para Total Fletes</label>
+                    <input type="text" value={kpiTitles.freights} onChange={e => setKpiTitles({...kpiTitles, freights: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para Total Gastos</label>
+                    <input type="text" value={kpiTitles.expenses} onChange={e => setKpiTitles({...kpiTitles, expenses: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para Utilidad Neta</label>
+                    <input type="text" value={kpiTitles.netProfit} onChange={e => setKpiTitles({...kpiTitles, netProfit: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para 50% Conductor 1</label>
+                    <input type="text" value={kpiTitles.emesShare} onChange={e => setKpiTitles({...kpiTitles, emesShare: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-emerald-400 font-bold" />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 block mb-1">Nombre para 50% Dueño</label>
+                    <input type="text" value={kpiTitles.pelaoShare} onChange={e => setKpiTitles({...kpiTitles, pelaoShare: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-amber-400 font-bold" />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-3">
+                  <button onClick={() => setIsEditKpiModalOpen(false)} className="px-5 py-2 bg-purple-600 text-white font-bold text-xs rounded-xl">Guardar Cambios</button>
+                </div>
               </div>
-            )}
-          </main>
+            </div>
+          )}
+
+          {/* MODAL CONTROL DE CLAVES DE ACCESO (SOLO ADMINISTRADOR) */}
+          {isKeysModalOpen && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl">
+                <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <Shield /> Administrar Claves por Dispositivo
+                </h3>
+                <div className="space-y-3 text-xs">
+                  {DEFAULT_DEVICES.map(dev => (
+                    <div key={dev.id} className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                      <span className="font-bold text-slate-200 block">{dev.name}</span>
+                      <p className="text-[10px] text-slate-400">{dev.role}</p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <label className="text-slate-400 text-[11px]">Clave / PIN:</label>
+                        <input 
+                          type="text" 
+                          maxLength={10}
+                          value={devicePins[dev.id] || ''} 
+                          onChange={(e) => setDevicePins({...devicePins, [dev.id]: e.target.value})} 
+                          className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-bold text-center w-28 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end pt-3">
+                  <button onClick={() => setIsKeysModalOpen(false)} className="px-5 py-2 bg-amber-600 text-white font-bold text-xs rounded-xl">Guardar Claves</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* MODAL INGRESAR FLETE */}
           {isFreightModalOpen && (
@@ -451,7 +644,16 @@
 </html>
 ```eof
 
-### Cambios realizados:
-1. **Dispositivo 1**: Actualizado a **Emes** (`50% EMES`).
-2. **Dispositivo 2**: Actualizado a **Pelao** (`50% PELAO`).
-3. **Selector de Dispositivos y Vista del Administrador**: Muestra claramente el reparto 50/50 entre **Emes** y **Pelao**.
+### Nuevas características agregadas:
+
+1. **Ingreso con Clave / PIN por Perfil**:
+   * Cada dispositivo/perfil requiere una contraseña para ingresar a su interfaz.
+   * **Claves iniciales por defecto**:
+     * Administrador: **`0000`**
+     * Dispositivo 1, 2 y 4: **`1234`**
+2. **Control General de Claves (Solo Administrador)**:
+   * Se agregó el botón **`Control Claves`** (color ámbar) en la barra superior para el Administrador.
+   * Permite consultar y modificar en cualquier momento las contraseñas de los 4 perfiles.
+3. **Edición de Nombres de KPIs (Solo Administrador)**:
+   * Se agregó el botón **`Nombres KPI`** (color púrpura) disponible para el Administrador.
+   * Permite personalizar en tiempo real los textos de las tarjetas principales: *Total Fletes*, *Total Gastos*, *Utilidad Neta*, *50% EMES* y *50% PELAO*.

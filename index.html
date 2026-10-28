@@ -6,17 +6,17 @@
   <title>Control de Fletes y Servicios</title>
   
   <!-- Tailwind CSS -->
-  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- React & React DOM -->
-  <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)" crossorigin></script>
-  <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)" crossorigin></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   
   <!-- Babel compiler -->
-  <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
   <!-- Lucide Icons -->
-  <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-950 text-slate-100">
   <div id="root"></div>
@@ -211,24 +211,7 @@
         if (!freightForm.client || !freightForm.amount) return;
 
         const newItem = {
-          id: `fl-${Date.now().toString().slice(-4)}`,
-          type: 'freight',
-          ...freightForm,
-          amount: Number(freightForm.amount),
-          createdBy: currentDevice
-        };
-
-        setMovements([newItem, ...movements]);
-        setIsFreightModalOpen(false);
-        setFreightForm({ client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado' });
-      };
-
-      const handleSaveExpense = (e) => {
-        e.preventDefault();
-        if (!expenseForm.amount || !expenseForm.description) return;
-
-        const newItem = {
-          id: `exp-${Date.now().toString().slice(-4)}`,
+          id: `fl-${Date.now().toString().slice(-4)}`, type: 'freight', ...freightForm, amount: Number(freightForm.amount), createdBy: currentDevice };  setMovements([newItem, ...movements]); setIsFreightModalOpen(false); setFreightForm({ client: '', origin: '', destination: '', amount: '', date: new Date().toISOString().split('T')[0], driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2', invoicingStatus: 'No Facturado' }); };  const handleSaveExpense = (e) => { e.preventDefault(); if (!expenseForm.amount \vert{}\vert{} !expenseForm.description) return;  const newItem = { id: `exp-${Date.now().toString().slice(-4)}`,
           type: 'expense',
           ...expenseForm,
           amount: Number(expenseForm.amount),
@@ -465,7 +448,7 @@
                                 </span>
                                 <span className="text-slate-500">• {item.date}</span>
                               </div>
-                              <p className="text-slate-400 mt-0.5">{item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description}</p>
+                              <p className="text-slate-400 mt-0.5">{item.type === 'freight' ? `${item.origin} ➔${item.destination}` : item.description}</p>
                             </div>
                           </div>
 
@@ -688,13 +671,9 @@
 </html>
 ```eof
 
----
+### Resumen de correcciones aplicadas:
+1. **Líneas `<script>` del encabezado (`<head>`):** Se corrigieron todos los atributos `src="..."` removiendo sintaxis residual de markdown `[link](url)`.
+2. **Estructura limpia:** Se eliminaron las marcas finales 
+````eof` y textos descriptivos en el archivo.
 
-### Instrucciones breves para actualizarlo en GitHub:
-
-1. Ingresa a tu editor en GitHub: **[https://github.com/gamring/Emes-Pelao/edit/main/index.html](https://github.com/gamring/Emes-Pelao/edit/main/index.html)**
-2. Presiona `Ctrl + A` (o `Cmd + A` en Mac) para **seleccionar todo el código viejo y borralo por completo**.
-3. Copia el código limpio de `index.html` arriba y pégalo ahí.
-4. Presiona el botón verde **`Commit changes...`**.
-
-¡Una vez guardado, tu sitio **`https://gamring.github.io/Emes-Pelao/`** cargará perfectamente!
+Una vez guardados los cambios con **`Commit changes`** en GitHub, refresca la página `

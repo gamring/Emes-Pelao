@@ -84,21 +84,30 @@
 
     function App() {
       const [movements, setMovements] = useState(() => {
-        const saved = localStorage.getItem('fletes_movements');
-        return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
+        try {
+          const saved = localStorage.getItem('fletes_movements');
+          return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
+        } catch(e) {
+          return INITIAL_MOVEMENTS;
+        }
       });
 
       const [devicePins, setDevicePins] = useState(() => {
-        const savedPins = localStorage.getItem('fletes_device_pins');
-        if (savedPins) return JSON.parse(savedPins);
+        try {
+          const savedPins = localStorage.getItem('fletes_device_pins');
+          if (savedPins) return JSON.parse(savedPins);
+        } catch(e) {}
         const initPins = {};
         DEFAULT_DEVICES.forEach(d => initPins[d.id] = d.defaultPin);
         return initPins;
       });
 
       const [kpiTitles, setKpiTitles] = useState(() => {
-        const savedTitles = localStorage.getItem('fletes_kpi_titles');
-        return savedTitles ? JSON.parse(savedTitles) : DEFAULT_KPI_TITLES;
+        try {
+          const savedTitles = localStorage.getItem('fletes_kpi_titles');
+          if (savedTitles) return JSON.parse(savedTitles);
+        } catch(e) {}
+        return DEFAULT_KPI_TITLES;
       });
 
       const [currentDevice, setCurrentDevice] = useState(DEFAULT_DEVICES[2].name);
@@ -128,15 +137,19 @@
       const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2], [currentDevice]);
 
       useEffect(() => {
-        localStorage.setItem('fletes_movements', JSON.stringify(movements));
-        localStorage.setItem('fletes_device_pins', JSON.stringify(devicePins));
-        localStorage.setItem('fletes_kpi_titles', JSON.stringify(kpiTitles));
-        if (window.lucide) window.lucide.createIcons();
+        try {
+          localStorage.setItem('fletes_movements', JSON.stringify(movements));
+          localStorage.setItem('fletes_device_pins', JSON.stringify(devicePins));
+          localStorage.setItem('fletes_kpi_titles', JSON.stringify(kpiTitles));
+        } catch(e) {}
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
       }, [movements, devicePins, kpiTitles, currentDevice, isAuthenticated, isFreightModalOpen, isExpenseModalOpen, isEditKpiModalOpen, isKeysModalOpen, selectedReceiptPhoto]);
 
       const handleLogin = (e) => {
         e.preventDefault();
-        const expectedPin = devicePins[activeDeviceObj.id];
+        const expectedPin = devicePins[activeDeviceObj.id] || activeDeviceObj.defaultPin;
         if (pinInput === expectedPin) {
           setIsAuthenticated(true);
           setLoginError('');
@@ -681,8 +694,13 @@
       );
     }
 
-    ReactDOM.render(<App/>, document.getElementById('root'));
+    const rootElement = document.getElementById('root');
+    if (ReactDOM.createRoot) {
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(<App />);
+    } else {
+      ReactDOM.render(<App />, rootElement);
+    }
   </script>
 </body>
 </html>
-```eof

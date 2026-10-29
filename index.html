@@ -3,118 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emes&Pelao - Gestión de Fletes y Servicios</title>
+  <title>Control de Fletes y Servicios - Emes&Pelao</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React 18 UMD (Carga directa universal) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  
+  <style>
+    body { background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased">
   <div id="root"></div>
 
-  <!-- React & React DOM (Versión de producción estable React 18) -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script>
+    // --- MANEJO DE ERRORES GLOBAL PARA EVITAR PANTALLA AZUL EN BLANCO ---
+    window.addEventListener('error', function(e) {
+      console.error('Error detectado:', e);
+      const rootDiv = document.getElementById('root');
+      if (rootDiv && (!rootDiv.children || rootDiv.children.length === 0)) {
+        rootDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#f87171;"><h2>⚠️ Error de carga detectado</h2><p>Restableciendo datos locales para recuperar la aplicación...</p><button onclick="localStorage.clear();location.reload();" style="background:#059669;color:white;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Reiniciar Aplicación</button></div>';
+      }
+    });
+  </script>
 
   <script>
-    // Se utiliza React puro sin transpilar JSX runtime para prevenir pantallas azules/blancas
     const { useState, useEffect, useMemo, createElement: h } = React;
 
-    // --- ICONOS SVG NATIVOS EN LÍNEA DE ALTO CONTRASTE ---
-    const Truck = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-5 h-5' },
+    // --- ICONOS SVG NATIVOS ---
+    const Truck = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-5 h-5' },
       h('path', { d: 'M14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v10' }),
       h('path', { d: 'M14 10h4l4 4v4H14v-8z' }),
       h('circle', { cx: '7.5', cy: '18.5', r: '2.5' }),
       h('circle', { cx: '18.5', cy: '18.5', r: '2.5' })
     );
 
-    const Lock = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
-      h('rect', { x: '3', y: '11', width: '18', height: '11', rx: '2', ry: '2' }),
+    const Lock = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
+      h('rect', { x: '3', y: '11', width: '18', height: '11', rx: '2' }),
       h('path', { d: 'M7 11V7a5 5 0 0 1 10 0v4' })
     );
 
-    const Clock = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-5 h-5' },
+    const Clock = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-5 h-5' },
       h('circle', { cx: '12', cy: '12', r: '10' }),
       h('polyline', { points: '12 6 12 12 16 14' })
     );
 
-    const FileText = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
-      h('path', { d: 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z' }),
-      h('polyline', { points: '14 2 14 8 20 8' }),
-      h('line', { x1: '16', y1: '13', x2: '8', y2: '13' }),
-      h('line', { x1: '16', y1: '17', x2: '8', y2: '17' }),
-      h('polyline', { points: '10 9 9 9 8 9' })
+    const FileText = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
+      h('path', { d: 'M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z' })
     );
 
-    const PlusCircle = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
+    const PlusCircle = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
       h('circle', { cx: '12', cy: '12', r: '10' }),
       h('line', { x1: '12', y1: '8', x2: '12', y2: '16' }),
       h('line', { x1: '8', y1: '12', x2: '16', y2: '12' })
     );
 
-    const Camera = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
+    const Camera = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
       h('path', { d: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z' }),
       h('circle', { cx: '12', cy: '13', r: '4' })
     );
 
-    const Trash2 = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
+    const Trash2 = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
       h('polyline', { points: '3 6 5 6 21 6' }),
-      h('path', { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' }),
-      h('line', { x1: '10', y1: '11', x2: '10', y2: '17' }),
-      h('line', { x1: '14', y1: '11', x2: '14', y2: '17' })
+      h('path', { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' })
     );
 
-    const LogOut = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
+    const LogOut = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
       h('path', { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' }),
       h('polyline', { points: '16 17 21 12 16 7' }),
       h('line', { x1: '21', y1: '12', x2: '9', y2: '12' })
     );
 
-    const Edit = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
-      h('path', { d: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' }),
-      h('path', { d: 'M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z' })
-    );
-
-    const Key = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
-      h('path', { d: 'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4' })
-    );
-
-    const Shield = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
-      h('path', { d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' })
-    );
-
-    const X = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
-      h('line', { x1: '18', y1: '6', x2: '6', y2: '18' }),
-      h('line', { x1: '6', y1: '6', x2: '18', y2: '18' })
-    );
-
-    const Download = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round', className: 'w-4 h-4' },
+    const Download = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-4 h-4' },
       h('path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }),
       h('polyline', { points: '7 10 12 15 17 10' }),
       h('line', { x1: '12', y1: '15', x2: '12', y2: '3' })
     );
 
-    // --- DATOS INICIALES DEL SISTEMA ---
+    // --- DATOS POR DEFECTO ---
     const INITIAL_MOVEMENTS = [
-      {
-        id: 'fl-101', type: 'freight', client: 'Constructora Del Sol', origin: 'Santiago Central',
-        destination: 'Valparaíso Puerto', amount: 300000, vehicle: 'Camión Volvo FH 4x2',
-        driverName: 'Emes', date: '2026-10-25', invoicingStatus: 'Factura Pagada', createdBy: 'Dispositivo 1 - Emes'
-      },
-      {
-        id: 'exp-201', type: 'expense', category: 'Combustible', amount: 60000, date: '2026-10-25',
-        description: 'Carga Diésel Shell', vehicle: 'Camión Volvo FH 4x2',
-        driverName: 'Emes', createdBy: 'Dispositivo 1 - Emes'
-      },
-      {
-        id: 'fl-102', type: 'freight', client: 'Agrocomercial Norte', origin: 'Rancagua',
-        destination: 'Coquimbo', amount: 480000, vehicle: 'Mercedes-Benz Actros',
-        driverName: 'Conductor 2', date: '2026-10-27', invoicingStatus: 'No Facturado', createdBy: 'Dispositivo 4 - Conductor 2'
-      },
-      {
-        id: 'exp-203', type: 'expense', category: 'Combustible', amount: 110000, date: '2026-10-27',
-        description: 'Estación Copec', vehicle: 'Mercedes-Benz Actros',
-        driverName: 'Conductor 2', createdBy: 'Dispositivo 4 - Conductor 2'
-      }
+      { id: 'fl-101', type: 'freight', client: 'Constructora Del Sol', origin: 'Santiago Central', destination: 'Valparaíso Puerto', amount: 300000, date: '2026-10-25', invoicingStatus: 'Factura Pagada', createdBy: 'Dispositivo 1 - Emes' },
+      { id: 'exp-201', type: 'expense', category: 'Combustible', amount: 60000, date: '2026-10-25', description: 'Carga Diésel Shell', createdBy: 'Dispositivo 1 - Emes' },
+      { id: 'fl-102', type: 'freight', client: 'Agrocomercial Norte', origin: 'Rancagua', destination: 'Coquimbo', amount: 480000, date: '2026-10-27', invoicingStatus: 'No Facturado', createdBy: 'Dispositivo 4 - Conductor 2' },
+      { id: 'exp-203', type: 'expense', category: 'Combustible', amount: 110000, date: '2026-10-27', description: 'Estación Copec', createdBy: 'Dispositivo 4 - Conductor 2' }
     ];
 
     const DEFAULT_DEVICES = [
@@ -124,41 +98,12 @@
       { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos', defaultPin: '1234' }
     ];
 
-    const DEFAULT_KPI_TITLES = {
-      freights: 'TOTAL FLETES',
-      expenses: 'TOTAL GASTOS',
-      netProfit: 'UTILIDAD NETA TOTAL',
-      emesShare: '50% EMES',
-      pelaoShare: '50% PELAO'
-    };
-
     function App() {
-      // Manejo seguro de LocalStorage
       const [movements, setMovements] = useState(() => {
         try {
-          const saved = localStorage.getItem('fletes_movements');
+          const saved = localStorage.getItem('fletes_movements_v2');
           return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
-        } catch (e) {
-          return INITIAL_MOVEMENTS;
-        }
-      });
-
-      const [devicePins, setDevicePins] = useState(() => {
-        const initPins = {};
-        DEFAULT_DEVICES.forEach(d => initPins[d.id] = d.defaultPin);
-        try {
-          const savedPins = localStorage.getItem('fletes_device_pins');
-          if (savedPins) return { ...initPins, ...JSON.parse(savedPins) };
-        } catch (e) {}
-        return initPins;
-      });
-
-      const [kpiTitles, setKpiTitles] = useState(() => {
-        try {
-          const savedTitles = localStorage.getItem('fletes_kpi_titles');
-          if (savedTitles) return JSON.parse(savedTitles);
-        } catch (e) {}
-        return DEFAULT_KPI_TITLES;
+        } catch (e) { return INITIAL_MOVEMENTS; }
       });
 
       const [currentDevice, setCurrentDevice] = useState(DEFAULT_DEVICES[2].name);
@@ -167,63 +112,29 @@
       const [loginError, setLoginError] = useState('');
       const [selectedMonth, setSelectedMonth] = useState('2026-10');
 
-      const [isKeysModalOpen, setIsKeysModalOpen] = useState(false);
-      const [isKpiModalOpen, setIsKpiModalOpen] = useState(false);
       const [isFreightModalOpen, setIsFreightModalOpen] = useState(false);
       const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
 
-      const [editedPins, setEditedPins] = useState({});
-      const [editedKpis, setEditedKpis] = useState({});
+      const [freightForm, setFreightForm] = useState({ client: '', origin: '', destination: '', amount: '', date: '2026-10-28', invoicingStatus: 'No Facturado' });
+      const [expenseForm, setExpenseForm] = useState({ category: 'Combustible', amount: '', description: '', date: '2026-10-28' });
 
-      const [freightForm, setFreightForm] = useState({
-        client: '', origin: '', destination: '', amount: '',
-        date: '2026-10-28',
-        driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2',
-        invoicingStatus: 'No Facturado'
-      });
+      const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2], [currentDevice]);
 
-      const [expenseForm, setExpenseForm] = useState({
-        category: 'Combustible', amount: '', description: '',
-        date: '2026-10-28',
-        driverName: 'Emes', receiptImage: null
-      });
-
-      const activeDeviceObj = useMemo(
-        () => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2],
-        [currentDevice]
-      );
-
-      // Persistencia automática
       useEffect(() => {
-        try {
-          localStorage.setItem('fletes_movements', JSON.stringify(movements));
-          localStorage.setItem('fletes_device_pins', JSON.stringify(devicePins));
-          localStorage.setItem('fletes_kpi_titles', JSON.stringify(kpiTitles));
-        } catch (e) {}
-      }, [movements, devicePins, kpiTitles]);
+        try { localStorage.setItem('fletes_movements_v2', JSON.stringify(movements)); } catch (e) {}
+      }, [movements]);
 
       const handleLogin = (e) => {
         e.preventDefault();
-        const expectedPin = devicePins[activeDeviceObj.id] || activeDeviceObj.defaultPin;
-        if (pinInput === expectedPin) {
+        if (pinInput === activeDeviceObj.defaultPin) {
           setIsAuthenticated(true);
           setLoginError('');
           setPinInput('');
-          setEditedPins({ ...devicePins });
-          setEditedKpis({ ...kpiTitles });
         } else {
-          setLoginError('Clave incorrecta');
+          setLoginError('Clave incorrecta (PIN por defecto: 0000 para Admin, 1234 para otros)');
         }
       };
 
-      const handleDeviceSwitch = (deviceName) => {
-        setCurrentDevice(deviceName);
-        setIsAuthenticated(false);
-        setPinInput('');
-        setLoginError('');
-      };
-
-      // Filtrado para Conductor 2: Exclusivamente sus propios gastos
       const monthlyMovements = useMemo(() => {
         const filtered = movements.filter(m => m.date && m.date.startsWith(selectedMonth));
         if (activeDeviceObj.roleKey === 'driver2') {
@@ -232,21 +143,14 @@
         return filtered;
       }, [movements, selectedMonth, activeDeviceObj]);
 
-      // Cálculos Financieros e IVA
       const metrics = useMemo(() => {
-        let totalFreights = 0;
-        let totalExpenses = 0;
-        let netFreights = 0;
-
-        let paidInvoices = 0;
-        let pendingInvoices = 0;
-        let unInvoiced = 0;
+        let totalFreights = 0, totalExpenses = 0, netFreights = 0;
+        let paidInvoices = 0, pendingInvoices = 0, unInvoiced = 0;
 
         monthlyMovements.forEach(m => {
           const amount = Number(m.amount) || 0;
           if (m.type === 'freight') {
             totalFreights += amount;
-            
             if (m.invoicingStatus === 'Factura Pagada') {
               paidInvoices += amount;
               netFreights += Math.round(amount / 1.19);
@@ -262,173 +166,96 @@
           }
         });
 
-        const totalCashIn = paidInvoices + unInvoiced; // Cobrados + No Facturados
+        const totalCashIn = paidInvoices + unInvoiced;
         const netTotal = netFreights - totalExpenses;
         const halfShare = netTotal > 0 ? netTotal * 0.5 : 0;
 
-        return {
-          totalFreights, totalExpenses, netTotal,
-          paidInvoices, pendingInvoices, unInvoiced, totalCashIn,
-          ownerShare: halfShare, driver1Share: halfShare
-        };
+        return { totalFreights, totalExpenses, netTotal, paidInvoices, pendingInvoices, unInvoiced, totalCashIn, ownerShare: halfShare, driver1Share: halfShare };
       }, [monthlyMovements]);
 
-      const formatMoney = (val) => new Intl.NumberFormat('es-CL', {
-        style: 'currency', currency: 'CLP', maximumFractionDigits: 0
-      }).format(val);
+      const formatMoney = (val) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(val);
 
       const handleDelete = (id) => {
-        if (activeDeviceObj.roleKey !== 'admin') {
-          alert('Solo el Administrador General puede eliminar registros.');
-          return;
-        }
-        if (confirm('¿Deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+        if (confirm('¿Deseas eliminar este registro?')) {
           setMovements(movements.filter(m => m.id !== id));
         }
       };
 
-      // Exportación a archivo Excel (.CSV en UTF-8)
       const handleExportCSV = () => {
-        if (monthlyMovements.length === 0) {
-          alert('No hay movimientos registrados en este mes para exportar.');
-          return;
-        }
-
-        const headers = ["ID", "Fecha", "Tipo", "Cliente / Categoria", "Origen", "Destino", "Monto CLP", "Estado Facturacion", "Registrado Por"];
+        if (monthlyMovements.length === 0) return alert('No hay datos este mes.');
+        const headers = ["ID", "Fecha", "Tipo", "Cliente/Categoria", "Origen", "Destino", "Monto CLP", "Facturacion", "Creado Por"];
         const rows = monthlyMovements.map(m => [
-          m.id,
-          m.date,
-          m.type === 'freight' ? 'Flete' : 'Gasto',
-          m.type === 'freight' ? `"${m.client}"` : `"${m.category} - ${m.description}"`,
-          m.origin ? `"${m.origin}"` : '-',
-          m.destination ? `"${m.destination}"` : '-',
-          m.amount,
-          m.invoicingStatus || '-',
-          `"${m.createdBy || 'Sistema'}"`
+          m.id, m.date, m.type === 'freight' ? 'Flete' : 'Gasto',
+          `"${m.client || m.category}"`, `"${m.origin || '-'}"`, `"${m.destination || '-'}"`,
+          m.amount, m.invoicingStatus || '-', `"${m.createdBy}"`
         ]);
-
-        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-          + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-
-        const encodedUri = encodeURI(csvContent);
+        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Reporte_Emes_Pelao_${selectedMonth}.csv`);
-        document.body.appendChild(link);
+        link.href = encodeURI(csvContent);
+        link.download = `Reporte_${selectedMonth}.csv`;
         link.click();
-        document.body.removeChild(link);
-      };
-
-      const handleSaveKeys = (e) => {
-        e.preventDefault();
-        setDevicePins(editedPins);
-        setIsKeysModalOpen(false);
-      };
-
-      const handleSaveKpis = (e) => {
-        e.preventDefault();
-        setKpiTitles(editedKpis);
-        setIsKpiModalOpen(false);
       };
 
       const handleSaveFreight = (e) => {
         e.preventDefault();
         if (!freightForm.client || !freightForm.amount) return;
-
-        const newItem = {
-          id: `fl-${Date.now().toString().slice(-4)}`,
-          type: 'freight',
-          ...freightForm,
-          amount: Number(freightForm.amount),
-          createdBy: currentDevice
-        };
-
-        setMovements([newItem, ...movements]);
+        setMovements([{ id: `fl-${Date.now().toString().slice(-4)}`, type: 'freight', ...freightForm, amount: Number(freightForm.amount), createdBy: currentDevice }, ...movements]);
         setIsFreightModalOpen(false);
-        setFreightForm({
-          client: '', origin: '', destination: '', amount: '',
-          date: '2026-10-28',
-          driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2',
-          invoicingStatus: 'No Facturado'
-        });
+        setFreightForm({ client: '', origin: '', destination: '', amount: '', date: '2026-10-28', invoicingStatus: 'No Facturado' });
       };
 
       const handleSaveExpense = (e) => {
         e.preventDefault();
         if (!expenseForm.amount || !expenseForm.description) return;
-
-        const newItem = {
-          id: `exp-${Date.now().toString().slice(-4)}`,
-          type: 'expense',
-          ...expenseForm,
-          amount: Number(expenseForm.amount),
-          createdBy: currentDevice
-        };
-
-        setMovements([newItem, ...movements]);
+        setMovements([{ id: `exp-${Date.now().toString().slice(-4)}`, type: 'expense', ...expenseForm, amount: Number(expenseForm.amount), createdBy: currentDevice }, ...movements]);
         setIsExpenseModalOpen(false);
-        setExpenseForm({
-          category: 'Combustible', amount: '', description: '',
-          date: '2026-10-28',
-          driverName: activeDeviceObj.roleKey === 'driver2' ? 'Conductor 2' : 'Emes', 
-          receiptImage: null
-        });
+        setExpenseForm({ category: 'Combustible', amount: '', description: '', date: '2026-10-28' });
       };
 
-      // --- VISTA ACCESO / LOGIN ---
+      // --- PANTALLA LOGIN ---
       if (!isAuthenticated) {
-        return h('div', {
-          className: 'min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4'
-        },
-          h('div', {
-            className: 'max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 text-center shadow-2xl'
-          },
-            h('div', {
-              className: 'w-12 h-12 bg-slate-800 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400'
-            }, h(Lock)),
+        return h('div', { className: 'min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4' },
+          h('div', { className: 'max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 text-center shadow-2xl' },
+            h('div', { className: 'w-12 h-12 bg-slate-800 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400' }, h(Lock)),
             h('div', null,
-              h('h2', { className: 'text-base font-extrabold text-white tracking-wide' }, currentDevice),
-              h('p', { className: 'text-xs text-slate-400 mt-1 font-medium' }, 'Ingresa tu clave de acceso')
+              h('h2', { className: 'text-base font-extrabold text-white' }, currentDevice),
+              h('p', { className: 'text-xs text-slate-400 mt-1' }, 'Ingresa el PIN de acceso')
             ),
             h('form', { onSubmit: handleLogin, className: 'space-y-4' },
               h('input', {
                 type: 'password', maxLength: 10, required: true, autoFocus: true,
-                placeholder: 'Ingresa PIN / Clave', value: pinInput,
+                placeholder: 'Ingresa PIN', value: pinInput,
                 onChange: (e) => setPinInput(e.target.value),
                 className: 'w-full text-center bg-slate-950 border border-slate-700 rounded-xl py-3 text-lg font-bold text-emerald-400 focus:outline-none focus:border-emerald-500 tracking-widest'
               }),
               loginError && h('p', { className: 'text-xs text-rose-400 font-bold' }, loginError),
-              h('button', {
-                type: 'submit',
-                className: 'w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-3 rounded-xl text-xs uppercase tracking-wider text-white transition-all'
-              }, 'Ingresar al Sistema')
+              h('button', { type: 'submit', className: 'w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-3 rounded-xl text-xs uppercase text-white transition-all' }, 'Ingresar')
             ),
             h('div', { className: 'pt-4 border-t border-slate-800' },
               h('p', { className: 'text-[11px] text-slate-400 mb-2 font-bold' }, '¿Cambiar de dispositivo?'),
               h('select', {
-                value: currentDevice,
-                onChange: (e) => handleDeviceSwitch(e.target.value),
+                value: currentDevice, onChange: (e) => setCurrentDevice(e.target.value),
                 className: 'bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700 rounded-lg p-2 focus:outline-none w-full cursor-pointer'
-              }, DEFAULT_DEVICES.map(d => d.name).map(n => h('option', { key: n, value: n }, n)))
+              }, DEFAULT_DEVICES.map(d => h('option', { key: d.id, value: d.name }, d.name)))
             )
           )
         );
       }
 
-      // --- VISTA DASHBOARD PRINCIPAL ---
-      return h('div', { className: 'min-h-screen bg-slate-950 text-slate-100 pb-20 font-sans' },
+      // --- DASHBOARD PRINCIPAL ---
+      return h('div', { className: 'min-h-screen bg-slate-950 text-slate-100 pb-20' },
         h('header', { className: 'bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10 shadow-lg' },
           h('div', { className: 'max-w-6xl mx-auto flex justify-between items-center gap-3' },
             h('div', { className: 'flex items-center gap-2.5' },
-              h('div', { className: 'p-2.5 bg-emerald-600 text-white rounded-xl shadow-lg' }, h(Truck)),
+              h('div', { className: 'p-2.5 bg-emerald-600 text-white rounded-xl shadow' }, h(Truck)),
               h('div', null,
-                h('h1', { className: 'font-black text-xl tracking-tight text-white' }, 'Emes&Pelao'),
-                h('p', { className: 'text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest' }, 'Gestión de Fletes y Servicios')
+                h('h1', { className: 'font-black text-xl text-white' }, 'Emes&Pelao'),
+                h('p', { className: 'text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest' }, 'Control de Fletes y Servicios')
               )
             ),
             h('div', { className: 'flex items-center gap-3' },
               h('span', { className: 'hidden md:inline text-xs text-emerald-400 bg-slate-800 border border-slate-700 px-3.5 py-1.5 rounded-xl font-extrabold' }, activeDeviceObj.name),
-              h('button', { onClick: () => setIsAuthenticated(false), className: 'p-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl border border-slate-700 shadow transition-all', title: 'Cerrar sesión' }, h(LogOut))
+              h('button', { onClick: () => setIsAuthenticated(false), className: 'p-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl border border-slate-700 shadow' }, h(LogOut))
             )
           )
         ),
@@ -436,283 +263,117 @@
           h('div', { className: 'bg-slate-900 p-4.5 rounded-2xl border border-slate-800 flex flex-col lg:flex-row justify-between items-center gap-4 shadow-xl' },
             h('div', { className: 'flex items-center gap-3 w-full lg:w-auto' },
               h('div', { className: 'text-slate-400' }, h(Clock)),
-              h('span', { className: 'text-xs text-slate-300 font-bold uppercase tracking-wider' }, 'Mes de Consulta:'),
-              h('input', { type: 'month', value: selectedMonth, onChange: (e) => setSelectedMonth(e.target.value), className: 'bg-slate-800 border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-black text-white focus:outline-none focus:border-emerald-500 cursor-pointer' })
+              h('span', { className: 'text-xs text-slate-300 font-bold uppercase' }, 'Mes:'),
+              h('input', { type: 'month', value: selectedMonth, onChange: (e) => setSelectedMonth(e.target.value), className: 'bg-slate-800 border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-black text-white focus:outline-none focus:border-emerald-500' })
             ),
             h('div', { className: 'flex flex-wrap items-center gap-2.5 w-full lg:w-auto' },
-              h('button', { onClick: handleExportCSV, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 text-emerald-400 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow' }, h(Download), 'Exportar Excel'),
-              activeDeviceObj.roleKey === 'admin' && [
-                h('button', { key: 'btn-kpi', onClick: () => { setEditedKpis({ ...kpiTitles }); setIsKpiModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-purple-500/50 text-purple-300 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow' }, h(Edit), 'Nombres KPI'),
-                h('button', { key: 'btn-keys', onClick: () => { setEditedPins({ ...devicePins }); setIsKeysModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow' }, h(Key), 'Control Claves')
-              ],
-              activeDeviceObj.roleKey !== 'driver2' && h('button', { onClick: () => setIsFreightModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(PlusCircle), '+ Flete'),
-              h('button', { onClick: () => {
-                setExpenseForm(prev => ({...prev, driverName: activeDeviceObj.roleKey === 'driver2' ? 'Conductor 2' : 'Emes'}));
-                setIsExpenseModalOpen(true);
-              }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(Camera), '+ Gasto')
+              h('button', { onClick: handleExportCSV, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 text-emerald-400 font-extrabold text-xs px-4 py-2.5 rounded-xl' }, h(Download), 'Exportar Excel'),
+              activeDeviceObj.roleKey !== 'driver2' && h('button', { onClick: () => setIsFreightModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow' }, h(PlusCircle), '+ Flete'),
+              h('button', { onClick: () => setIsExpenseModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow' }, h(Camera), '+ Gasto')
             )
           ),
-          
-          // --- VISTA DIFERENCIADA ---
+
           activeDeviceObj.roleKey === 'driver2' ? 
-          h('div', { className: 'grid grid-cols-1 gap-5' },
-            h('div', { className: 'bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl' },
-              h('span', { className: 'text-xs text-rose-400 font-black tracking-wider block mb-1.5 uppercase' }, 'MIS GASTOS REGISTRADOS ESTE MES'),
-              h('p', { className: 'text-4xl font-black text-rose-400 tracking-tight' }, formatMoney(metrics.totalExpenses))
-            )
-          ) : 
+          h('div', { className: 'bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl' },
+            h('span', { className: 'text-xs text-rose-400 font-black tracking-wider block mb-1.5 uppercase' }, 'MIS GASTOS REGISTRADOS ESTE MES'),
+            h('p', { className: 'text-4xl font-black text-rose-400' }, formatMoney(metrics.totalExpenses))
+          ) :
           h('div', { className: 'space-y-5' },
             h('div', { className: 'grid grid-cols-1 sm:grid-cols-3 gap-5' },
               h('div', { className: 'bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow' },
-                h('span', { className: 'text-[11px] text-slate-400 font-extrabold uppercase tracking-widest' }, kpiTitles.freights),
-                h('p', { className: 'text-3xl font-black text-emerald-400 mt-1 tracking-tight' }, formatMoney(metrics.totalFreights))
+                h('span', { className: 'text-[11px] text-slate-400 font-extrabold uppercase' }, 'TOTAL FLETES'),
+                h('p', { className: 'text-3xl font-black text-emerald-400 mt-1' }, formatMoney(metrics.totalFreights))
               ),
               h('div', { className: 'bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow' },
-                h('span', { className: 'text-[11px] text-slate-400 font-extrabold uppercase tracking-widest' }, kpiTitles.expenses),
-                h('p', { className: 'text-3xl font-black text-rose-400 mt-1 tracking-tight' }, formatMoney(metrics.totalExpenses))
+                h('span', { className: 'text-[11px] text-slate-400 font-extrabold uppercase' }, 'TOTAL GASTOS'),
+                h('p', { className: 'text-3xl font-black text-rose-400 mt-1' }, formatMoney(metrics.totalExpenses))
               ),
               h('div', { className: 'bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow' },
-                h('span', { className: 'text-[11px] text-slate-400 font-extrabold uppercase tracking-widest flex items-center gap-1.5' }, 
-                  kpiTitles.netProfit,
-                  h('span', { className: 'text-[8px] font-black text-emerald-400 bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded uppercase tracking-wider' }, 'NETO IVA FACTURA')
-                ),
-                h('p', { className: 'text-3xl font-black text-white mt-1 tracking-tight' }, formatMoney(metrics.netTotal))
+                h('span', { className: 'text-[11px] text-slate-400 font-extrabold uppercase flex items-center gap-1.5' }, 'UTILIDAD NETA TOTAL', h('span', { className: 'text-[8px] font-black text-emerald-400 bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded' }, 'NETO IVA FACTURA')),
+                h('p', { className: 'text-3xl font-black text-white mt-1' }, formatMoney(metrics.netTotal))
               )
             ),
-
-            // --- SECCIÓN KPIS DE FACTURACIÓN (DISPOSITIVOS 1, 2 Y 3) ---
-            h('div', { className: 'bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3' },
-              h('h3', { className: 'text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2' }, 'Estado e Ingresos de Facturación'),
+            h('div', { className: 'bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3' },
+              h('h3', { className: 'text-xs font-black text-slate-400 uppercase border-b border-slate-800 pb-2' }, 'Estado e Ingresos de Facturación'),
               h('div', { className: 'grid grid-cols-1 sm:grid-cols-4 gap-4' },
-                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-emerald-900/50' },
-                  h('span', { className: 'text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest block' }, 'FACTURA PAGADA'),
-                  h('p', { className: 'text-xl font-black text-emerald-400 mt-1' }, formatMoney(metrics.paidInvoices))
-                ),
-                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-amber-900/50' },
-                  h('span', { className: 'text-[10px] font-extrabold text-amber-400 uppercase tracking-widest block' }, 'FACTURA PENDIENTE'),
-                  h('p', { className: 'text-xl font-black text-amber-400 mt-1' }, formatMoney(metrics.pendingInvoices))
-                ),
-                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-slate-800' },
-                  h('span', { className: 'text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block' }, 'NO FACTURADO / EMITIDO'),
-                  h('p', { className: 'text-xl font-black text-slate-300 mt-1' }, formatMoney(metrics.unInvoiced))
-                ),
-                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-emerald-500/30' },
-                  h('span', { className: 'text-[10px] font-extrabold text-emerald-300 uppercase tracking-widest block' }, 'INGRESOS TOTALES COBRADOS'),
-                  h('p', { className: 'text-xl font-black text-emerald-300 mt-1' }, formatMoney(metrics.totalCashIn))
-                )
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-emerald-900/50' }, h('span', { className: 'text-[10px] font-extrabold text-emerald-400 uppercase block' }, 'FACTURA PAGADA'), h('p', { className: 'text-xl font-black text-emerald-400 mt-1' }, formatMoney(metrics.paidInvoices))),
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-amber-900/50' }, h('span', { className: 'text-[10px] font-extrabold text-amber-400 uppercase block' }, 'FACTURA PENDIENTE'), h('p', { className: 'text-xl font-black text-amber-400 mt-1' }, formatMoney(metrics.pendingInvoices))),
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-slate-800' }, h('span', { className: 'text-[10px] font-extrabold text-slate-400 uppercase block' }, 'NO FACTURADO / EMITIDO'), h('p', { className: 'text-xl font-black text-slate-300 mt-1' }, formatMoney(metrics.unInvoiced))),
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-emerald-500/30' }, h('span', { className: 'text-[10px] font-extrabold text-emerald-300 uppercase block' }, 'INGRESOS TOTALES COBRADOS'), h('p', { className: 'text-xl font-black text-emerald-300 mt-1' }, formatMoney(metrics.totalCashIn)))
               )
             )
           ),
 
-          // Reparto 50/50 de Beneficios
-          activeDeviceObj.roleKey !== 'driver2' && [
-            activeDeviceObj.roleKey === 'driver1' && h('div', { key: 'sh-driver1', className: 'bg-slate-900 border border-emerald-500/40 p-5 rounded-2xl shadow-xl' },
-              h('span', { className: 'text-xs font-black text-emerald-400 uppercase tracking-wider' }, kpiTitles.emesShare),
-              h('p', { className: 'text-4xl font-black text-emerald-400 mt-2' }, formatMoney(metrics.driver1Share))
+          activeDeviceObj.roleKey !== 'driver2' && h('div', { className: 'bg-slate-900 border border-slate-800 p-5.5 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-5' },
+            h('div', { className: 'border-b sm:border-b-0 sm:border-r border-slate-800 pb-4 sm:pb-0 sm:pr-4' },
+              h('span', { className: 'text-xs font-black text-emerald-400 uppercase' }, '50% EMES'),
+              h('p', { className: 'text-3.5xl font-black text-emerald-400 mt-2' }, formatMoney(metrics.driver1Share))
             ),
-            activeDeviceObj.roleKey === 'owner' && h('div', { key: 'sh-owner', className: 'bg-slate-900 border border-amber-500/40 p-5 rounded-2xl shadow-xl' },
-              h('span', { className: 'text-xs font-black text-amber-400 uppercase tracking-wider' }, kpiTitles.pelaoShare),
-              h('p', { className: 'text-4xl font-black text-amber-400 mt-2' }, formatMoney(metrics.ownerShare))
-            ),
-            activeDeviceObj.roleKey === 'admin' && h('div', { key: 'sh-admin', className: 'bg-slate-900 border border-slate-800 p-5.5 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-5' },
-              h('div', { className: 'border-b sm:border-b-0 sm:border-r border-slate-800 pb-4 sm:pb-0 sm:pr-4' },
-                h('span', { className: 'text-xs font-black text-emerald-400 uppercase tracking-wider' }, kpiTitles.emesShare),
-                h('p', { className: 'text-3.5xl font-black text-emerald-400 mt-2 tracking-tight' }, formatMoney(metrics.driver1Share))
-              ),
-              h('div', { className: 'pt-4 sm:pt-0' },
-                h('span', { className: 'text-xs font-black text-amber-400 uppercase tracking-wider' }, kpiTitles.pelaoShare),
-                h('p', { className: 'text-3.5xl font-black text-amber-400 mt-2 tracking-tight' }, formatMoney(metrics.ownerShare))
-              )
+            h('div', { className: 'pt-4 sm:pt-0' },
+              h('span', { className: 'text-xs font-black text-amber-400 uppercase' }, '50% PELAO'),
+              h('p', { className: 'text-3.5xl font-black text-amber-400 mt-2' }, formatMoney(metrics.ownerShare))
             )
-          ],
+          ),
 
           h('div', { className: 'bg-slate-900 rounded-2xl border border-slate-800 p-5.5 space-y-4 shadow-xl' },
-            h('h3', { className: 'font-black text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3 uppercase tracking-wide' }, 
-              h(FileText), 
-              activeDeviceObj.roleKey === 'driver2' ? 'Mis Gastos Registrados' : 'Movimientos del Mes Registrados'
-            ),
+            h('h3', { className: 'font-black text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3 uppercase' }, h(FileText), activeDeviceObj.roleKey === 'driver2' ? 'Mis Gastos Registrados' : 'Movimientos del Mes Registrados'),
             h('div', { className: 'space-y-2.5' },
-              monthlyMovements.length === 0 ? h('p', { className: 'text-xs text-slate-500 py-6 text-center font-bold' }, 'No existen movimientos registrados para el mes seleccionado.') :
+              monthlyMovements.length === 0 ? h('p', { className: 'text-xs text-slate-500 py-6 text-center font-bold' }, 'No existen movimientos este mes.') :
               monthlyMovements.map(item => h('div', { key: item.id, className: 'bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs gap-3 shadow' },
                 h('div', { className: 'space-y-1' },
                   h('div', { className: 'flex items-center gap-2 flex-wrap' },
                     h('p', { className: `font-extrabold text-[13.5px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`),
-                    item.type === 'freight' && h('span', { className: `text-[8.5px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${item.invoicingStatus === 'No Facturado' ? 'bg-slate-800 text-slate-300 border border-slate-700' : item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}` }, item.invoicingStatus)
+                    item.type === 'freight' && h('span', { className: `text-[8.5px] font-black px-2 py-0.5 rounded uppercase ${item.invoicingStatus === 'No Facturado' ? 'bg-slate-800 text-slate-300' : item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}` }, item.invoicingStatus)
                   ),
-                  h('p', { className: 'text-slate-300 text-[11px] font-semibold tracking-wide' }, item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description),
-                  h('span', { className: 'text-slate-400 text-[10px] font-semibold block pt-1.5' }, `${item.date} • Registrado por: ${item.createdBy || 'Sistema'}`)
+                  h('p', { className: 'text-slate-300 text-[11px] font-semibold' }, item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description),
+                  h('span', { className: 'text-slate-400 text-[10px] font-semibold block pt-1.5' }, `${item.date} • ${item.createdBy}`)
                 ),
                 h('div', { className: 'flex items-center gap-3 shrink-0' },
                   h('span', { className: `font-black text-[14px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, `${item.type === 'freight' ? '+' : '-'}${formatMoney(item.amount)}`),
-                  activeDeviceObj.roleKey === 'admin' && h('button', { onClick: () => handleDelete(item.id), className: 'text-slate-500 hover:text-rose-400 p-2 rounded-lg hover:bg-slate-900 transition-all border border-transparent hover:border-slate-800', title: 'Eliminar Registro' }, h(Trash2))
+                  activeDeviceObj.roleKey === 'admin' && h('button', { onClick: () => handleDelete(item.id), className: 'text-slate-500 hover:text-rose-400 p-2' }, h(Trash2))
                 )
               ))
             )
           )
         ),
 
-        // --- MODAL CONTROL CLAVES ---
-        isKeysModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
-          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
-            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2.5' },
-              h('h3', { className: 'font-black text-sm text-white flex items-center gap-2' }, h(Shield), 'Administrar Claves de Acceso'),
-              h('button', { onClick: () => setIsKeysModalOpen(false), className: 'text-slate-400 hover:text-white p-1 rounded-lg' }, h(X))
-            ),
-            h('form', { onSubmit: handleSaveKeys, className: 'space-y-3.5 text-xs' },
-              DEFAULT_DEVICES.map(dev => h('div', { key: dev.id, className: 'bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1' },
-                h('span', { className: 'font-extrabold text-slate-200 block' }, dev.name),
-                h('p', { className: 'text-[10px] text-slate-400 font-bold pb-1.5' }, dev.role),
-                h('div', { className: 'flex items-center gap-2' },
-                  h('label', { className: 'text-slate-400 text-[11px] font-bold' }, 'Clave / PIN:'),
-                  h('input', {
-                    type: 'text', maxLength: 10, required: true,
-                    value: editedPins[dev.id] || '',
-                    onChange: (e) => setEditedPins({ ...editedPins, [dev.id]: e.target.value }),
-                    className: 'bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-black text-center w-28 focus:outline-none focus:border-emerald-500'
-                  })
-                )
-              )),
-              h('div', { className: 'flex justify-end gap-2 pt-3.5 border-t border-slate-800' },
-                h('button', { type: 'button', onClick: () => setIsKeysModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 font-extrabold' }, 'Cancelar'),
-                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl shadow' }, 'Guardar Claves')
-              )
-            )
-          )
-        ),
-
-        // --- MODAL MODIFICAR KPIs ---
-        isKpiModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
-          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
-            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2.5' },
-              h('h3', { className: 'font-black text-sm text-white flex items-center gap-2' }, h(Edit), 'Modificar Textos KPIs'),
-              h('button', { onClick: () => setIsKpiModalOpen(false), className: 'text-slate-400 hover:text-white p-1' }, h(X))
-            ),
-            h('form', { onSubmit: handleSaveKpis, className: 'space-y-3.5 text-xs' },
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1.5 font-bold' }, 'Nombre para Total Fletes'),
-                h('input', {
-                  type: 'text', required: true, value: editedKpis.freights || '',
-                  onChange: (e) => setEditedKpis({ ...editedKpis, freights: e.target.value }),
-                  className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-extrabold'
-                })
-              ),
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1.5 font-bold' }, 'Nombre para Total Gastos'),
-                h('input', {
-                  type: 'text', required: true, value: editedKpis.expenses || '',
-                  onChange: (e) => setEditedKpis({ ...editedKpis, expenses: e.target.value }),
-                  className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-extrabold'
-                })
-              ),
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1.5 font-bold' }, 'Nombre para Utilidad Neta'),
-                h('input', {
-                  type: 'text', required: true, value: editedKpis.netProfit || '',
-                  onChange: (e) => setEditedKpis({ ...editedKpis, netProfit: e.target.value }),
-                  className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-extrabold'
-                })
-              ),
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1.5 font-bold' }, 'Nombre para 50% Conductor 1'),
-                h('input', {
-                  type: 'text', required: true, value: editedKpis.emesShare || '',
-                  onChange: (e) => setEditedKpis({ ...editedKpis, emesShare: e.target.value }),
-                  className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-extrabold'
-                })
-              ),
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1.5 font-bold' }, 'Nombre para 50% Dueño'),
-                h('input', {
-                  type: 'text', required: true, value: editedKpis.pelaoShare || '',
-                  onChange: (e) => setEditedKpis({ ...editedKpis, pelaoShare: e.target.value }),
-                  className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-extrabold'
-                })
-              ),
-              h('div', { className: 'flex justify-end gap-2 pt-3 border-t border-slate-800' },
-                h('button', { type: 'button', onClick: () => setIsKpiModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 font-extrabold' }, 'Cancelar'),
-                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl shadow' }, 'Guardar Cambios')
-              )
-            )
-          )
-        ),
-
-        // --- MODAL AGREGAR FLETE ---
+        // MODAL FLETE
         isFreightModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
           h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
-            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2.5' },
-              h('h3', { className: 'font-black text-sm text-white' }, 'Ingresar Nuevo Flete'),
-              h('button', { onClick: () => setIsFreightModalOpen(false), className: 'text-slate-400 p-1 hover:text-white' }, h(X))
-            ),
+            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, 'Ingresar Nuevo Flete'),
             h('form', { onSubmit: handleSaveFreight, className: 'space-y-3.5 text-xs' },
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Cliente / Contratante *'),
-                h('input', { type: 'text', required: true, value: freightForm.client, onChange: e => setFreightForm({ ...freightForm, client: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500 font-bold' })
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Cliente *'), h('input', { type: 'text', required: true, value: freightForm.client, onChange: e => setFreightForm({ ...freightForm, client: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold' })),
+              h('div', { className: 'grid grid-cols-2 gap-2.5' },
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Origen'), h('input', { type: 'text', value: freightForm.origin, onChange: e => setFreightForm({ ...freightForm, origin: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white' })),
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Destino'), h('input', { type: 'text', value: freightForm.destination, onChange: e => setFreightForm({ ...freightForm, destination: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white' }))
               ),
               h('div', { className: 'grid grid-cols-2 gap-2.5' },
-                h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1' }, 'Origen'),
-                  h('input', { type: 'text', value: freightForm.origin, onChange: e => setFreightForm({ ...freightForm, origin: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500 font-semibold', placeholder: 'Punto partida' })
-                ),
-                h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1' }, 'Destino'),
-                  h('input', { type: 'text', value: freightForm.destination, onChange: e => setFreightForm({ ...freightForm, destination: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500 font-semibold', placeholder: 'Punto llegada' })
-                )
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Monto CLP *'), h('input', { type: 'number', required: true, value: freightForm.amount, onChange: e => setFreightForm({ ...freightForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-emerald-400 font-black' })),
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'), h('input', { type: 'date', value: freightForm.date, onChange: e => setFreightForm({ ...freightForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white' }))
               ),
-              h('div', { className: 'grid grid-cols-2 gap-2.5' },
-                h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Monto CLP (Bruto) *'),
-                  h('input', { type: 'number', required: true, value: freightForm.amount, onChange: e => setFreightForm({ ...freightForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-emerald-400 font-black focus:outline-none focus:border-emerald-500' })
-                ),
-                h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'),
-                  h('input', { type: 'date', value: freightForm.date, onChange: e => setFreightForm({ ...freightForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500' })
-                )
-              ),
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Estado de Facturación'),
-                h('select', { value: freightForm.invoicingStatus, onChange: e => setFreightForm({ ...freightForm, invoicingStatus: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold cursor-pointer focus:outline-none focus:border-emerald-500' },
-                  ['No Facturado', 'Factura Pagada', 'Factura Pendiente'].map(c => h('option', { key: c, value: c }, c))
-                )
-              ),
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Facturación'), h('select', { value: freightForm.invoicingStatus, onChange: e => setFreightForm({ ...freightForm, invoicingStatus: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold' }, ['No Facturado', 'Factura Pagada', 'Factura Pendiente'].map(c => h('option', { key: c, value: c }, c)))),
               h('div', { className: 'flex justify-end gap-2 pt-4 border-t border-slate-800' },
-                h('button', { type: 'button', onClick: () => setIsFreightModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700' }, 'Cancelar'),
-                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl shadow' }, 'Guardar Flete')
+                h('button', { type: 'button', onClick: () => setIsFreightModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl font-bold' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-emerald-600 text-white font-black rounded-xl' }, 'Guardar')
               )
             )
           )
         ),
 
-        // --- MODAL AGREGAR GASTO ---
+        // MODAL GASTO
         isExpenseModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
           h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
-            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2.5' },
-              h('h3', { className: 'font-black text-sm text-white' }, 'Ingresar Gasto de Operación'),
-              h('button', { onClick: () => setIsExpenseModalOpen(false), className: 'text-slate-400 p-1 hover:text-white' }, h(X))
-            ),
+            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, 'Ingresar Gasto'),
             h('form', { onSubmit: handleSaveExpense, className: 'space-y-3.5 text-xs' },
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Categoría del Gasto'),
-                h('select', { value: expenseForm.category, onChange: e => setExpenseForm({ ...expenseForm, category: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold cursor-pointer focus:outline-none focus:border-rose-500' },
-                  ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'].map(c => h('option', { key: c, value: c }, c))
-                )
-              ),
-              h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Descripción Breve *'),
-                h('input', { type: 'text', required: true, value: expenseForm.description, onChange: e => setExpenseForm({ ...expenseForm, description: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-rose-500 font-bold', placeholder: 'Ej: Carga Diésel Shell / Peajes' })
-              ),
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Categoría'), h('select', { value: expenseForm.category, onChange: e => setExpenseForm({ ...expenseForm, category: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold' }, ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'].map(c => h('option', { key: c, value: c }, c)))),
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Descripción *'), h('input', { type: 'text', required: true, value: expenseForm.description, onChange: e => setExpenseForm({ ...expenseForm, description: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold', placeholder: 'Ej: Shell Diésel' })),
               h('div', { className: 'grid grid-cols-2 gap-2.5' },
-                h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Monto CLP *'),
-                  h('input', { type: 'number', required: true, value: expenseForm.amount, onChange: e => setExpenseForm({ ...expenseForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-rose-400 font-black focus:outline-none focus:border-rose-500' })
-                ),
-                h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'),
-                  h('input', { type: 'date', value: expenseForm.date, onChange: e => setExpenseForm({ ...expenseForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-rose-500' })
-                )
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Monto CLP *'), h('input', { type: 'number', required: true, value: expenseForm.amount, onChange: e => setExpenseForm({ ...expenseForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-rose-400 font-black' })),
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'), h('input', { type: 'date', value: expenseForm.date, onChange: e => setExpenseForm({ ...expenseForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white' }))
               ),
               h('div', { className: 'flex justify-end gap-2 pt-4 border-t border-slate-800' },
-                h('button', { type: 'button', onClick: () => setIsExpenseModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700' }, 'Cancelar'),
-                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl shadow' }, 'Guardar Gasto')
+                h('button', { type: 'button', onClick: () => setIsExpenseModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl font-bold' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-rose-600 text-white font-black rounded-xl' }, 'Guardar')
               )
             )
           )
@@ -720,19 +381,15 @@
       );
     }
 
-    // --- INICIALIZACIÓN Y MONTAJE SEGURO ---
-    const mountNode = document.getElementById('root');
-    try {
+    // --- MONTAJE SEGURO ---
+    document.addEventListener('DOMContentLoaded', function() {
+      const rootNode = document.getElementById('root');
       if (typeof ReactDOM.createRoot === 'function') {
-        const root = ReactDOM.createRoot(mountNode);
-        root.render(h(App));
+        ReactDOM.createRoot(rootNode).render(h(App));
       } else {
-        ReactDOM.render(h(App), mountNode);
+        ReactDOM.render(h(App), rootNode);
       }
-    } catch (e) {
-      console.error('Fallo al montar React:', e);
-      ReactDOM.render(h(App), mountNode);
-    }
+    });
   </script>
 </body>
 </html>

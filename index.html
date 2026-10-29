@@ -4,16 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Fletes y Servicios</title>
+  
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & React DOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-950 text-slate-100">
   <div id="root"></div>
+
   <script>
     const { useState, useEffect, useMemo, createElement: h } = React;
 
+    // Componentes para íconos usando Lucide
     const Truck = () => h('i', { 'data-lucide': 'truck', className: 'w-5 h-5' });
     const Lock = () => h('i', { 'data-lucide': 'lock', className: 'w-4 h-4' });
     const Clock = () => h('i', { 'data-lucide': 'clock', className: 'w-5 h-5' });
@@ -97,7 +105,7 @@
       const [isAuthenticated, setIsAuthenticated] = useState(false);
       const [pinInput, setPinInput] = useState('');
       const [loginError, setLoginError] = useState('');
-      const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+      const [selectedMonth, setSelectedMonth] = useState('2026-10');
 
       const [isKeysModalOpen, setIsKeysModalOpen] = useState(false);
       const [isKpiModalOpen, setIsKpiModalOpen] = useState(false);
@@ -109,14 +117,14 @@
 
       const [freightForm, setFreightForm] = useState({
         client: '', origin: '', destination: '', amount: '',
-        date: new Date().toISOString().slice(0, 10),
+        date: '2026-10-28',
         driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2',
         invoicingStatus: 'No Facturado', vatApplicable: false
       });
 
       const [expenseForm, setExpenseForm] = useState({
         category: 'Combustible', amount: '', description: '',
-        date: new Date().toISOString().slice(0, 10),
+        date: '2026-10-28',
         driverName: 'Emes', receiptImage: null, vatCreditEligible: false
       });
 
@@ -166,12 +174,9 @@
         [movements, selectedMonth]
       );
 
-      const IVA_RATE = 0.19;
       const metrics = useMemo(() => {
         let totalFreights = 0;
         let totalExpenses = 0;
-        let salesVat = 0;
-        let purchaseVatCredit = 0;
         let netFreights = 0;
         let netExpenses = 0;
 
@@ -180,31 +185,19 @@
 
           if (m.type === 'freight') {
             totalFreights += amount;
-            const taxable = m.vatApplicable === true ||
-              (m.vatApplicable === undefined &&
-               String(m.invoicingStatus || '').toLowerCase().includes('factura') &&
-               !String(m.invoicingStatus || '').toLowerCase().includes('no facturado'));
-
-            const vat = taxable ? Math.round(amount * IVA_RATE / (1 + IVA_RATE)) : 0;
-            salesVat += vat;
-            netFreights += amount - vat;
+            netFreights += amount;
           } else {
-            // Todos los gastos se descuentan por el total pagado.
-            // No se recupera ni descuenta IVA de los gastos.
             totalExpenses += amount;
             netExpenses += amount;
           }
         });
 
         const netTotal = netFreights - netExpenses;
-        const vatBalance = salesVat - purchaseVatCredit;
-        const profitAfterVat = netTotal;
-        const halfShare = profitAfterVat > 0 ? profitAfterVat * 0.5 : 0;
+        const halfShare = netTotal > 0 ? netTotal * 0.5 : 0;
 
         return {
-          totalFreights, totalExpenses, netFreights, netExpenses,
-          salesVat, purchaseVatCredit, vatBalance, netTotal,
-          profitAfterVat, ownerShare: halfShare, driver1Share: halfShare
+          totalFreights, totalExpenses, netTotal,
+          ownerShare: halfShare, driver1Share: halfShare
         };
       }, [monthlyMovements]);
 
@@ -250,7 +243,7 @@
         setIsFreightModalOpen(false);
         setFreightForm({
           client: '', origin: '', destination: '', amount: '',
-          date: new Date().toISOString().slice(0, 10),
+          date: '2026-10-28',
           driverName: 'Emes', vehicle: 'Camión Volvo FH 4x2',
           invoicingStatus: 'No Facturado', vatApplicable: false
         });
@@ -265,7 +258,6 @@
           type: 'expense',
           ...expenseForm,
           amount: Number(expenseForm.amount),
-          vatCreditEligible: false,
           createdBy: currentDevice
         };
 
@@ -273,7 +265,7 @@
         setIsExpenseModalOpen(false);
         setExpenseForm({
           category: 'Combustible', amount: '', description: '',
-          date: new Date().toISOString().slice(0, 10),
+          date: '2026-10-28',
           driverName: 'Emes', receiptImage: null, vatCreditEligible: false
         });
       };
@@ -316,3 +308,248 @@
           )
         );
       }
+
+      return h('div', { className: 'min-h-screen bg-slate-950 text-slate-100 pb-20' },
+        h('header', { className: 'bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10' },
+          h('div', { className: 'max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3' },
+            h('div', { className: 'flex items-center gap-2' },
+              h('div', { className: 'p-2 bg-emerald-600 rounded-xl' }, h(Truck)),
+              h('div', null,
+                h('h1', { className: 'font-bold text-lg' }, 'FletesSync'),
+                h('p', { className: 'text-[10px] text-emerald-400 font-semibold uppercase' }, 'Gestión de Fletes y Servicios')
+              )
+            ),
+            h('div', { className: 'flex items-center gap-3' },
+              h('span', { className: 'text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 px-2.5 py-1 rounded-lg' }, activeDeviceObj.name),
+              h('button', { onClick: () => setIsAuthenticated(false), className: 'p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg border border-slate-700', title: 'Cerrar sesión' }, h(LogOut))
+            )
+          )
+        ),
+        h('main', { className: 'max-w-5xl mx-auto p-4 space-y-6' },
+          h('div', { className: 'bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4' },
+            h('div', { className: 'flex items-center gap-2' },
+              h(Clock),
+              h('span', { className: 'text-xs text-slate-400 font-bold uppercase' }, 'Mes:'),
+              h('input', { type: 'month', value: selectedMonth, onChange: (e) => setSelectedMonth(e.target.value), className: 'bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer' })
+            ),
+            h('div', { className: 'flex flex-wrap items-center gap-2 w-full sm:w-auto' },
+              activeDeviceObj.roleKey === 'admin' && [
+                h('button', { key: 'btn-kpi', onClick: () => { setEditedKpis({ ...kpiTitles }); setIsKpiModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-purple-900 hover:bg-purple-800 border border-purple-500/40 text-purple-200 font-bold text-xs px-3 py-2 rounded-xl transition' }, h(Edit), ' Nombres KPI'),
+                h('button', { key: 'btn-keys', onClick: () => { setEditedPins({ ...devicePins }); setIsKeysModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-amber-900 hover:bg-amber-800 border border-amber-500/40 text-amber-200 font-bold text-xs px-3 py-2 rounded-xl transition' }, h(Key), ' Control Claves')
+              ],
+              activeDeviceObj.roleKey !== 'driver2' && h('button', { onClick: () => setIsFreightModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition' }, h(PlusCircle), ' + Flete'),
+              h('button', { onClick: () => setIsExpenseModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-lg transition' }, h(Camera), ' + Gasto')
+            )
+          ),
+          h('div', { className: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
+            h('div', { className: 'bg-slate-900 p-4 rounded-xl border border-slate-800' },
+              h('span', { className: 'text-xs text-slate-400 font-bold uppercase' }, kpiTitles.freights),
+              h('p', { className: 'text-xl font-bold text-emerald-400 mt-1' }, formatMoney(metrics.totalFreights))
+            ),
+            h('div', { className: 'bg-slate-900 p-4 rounded-xl border border-slate-800' },
+              h('span', { className: 'text-xs text-slate-400 font-bold uppercase' }, kpiTitles.expenses),
+              h('p', { className: 'text-xl font-bold text-rose-400 mt-1' }, formatMoney(metrics.totalExpenses))
+            ),
+            h('div', { className: 'bg-slate-900 p-4 rounded-xl border border-slate-800' },
+              h('span', { className: 'text-xs text-slate-400 font-bold uppercase' }, kpiTitles.netProfit),
+              h('p', { className: 'text-xl font-bold text-white mt-1' }, formatMoney(metrics.netTotal))
+            )
+          ),
+          activeDeviceObj.roleKey === 'driver1' && h('div', { className: 'bg-emerald-950/30 border border-emerald-500/40 p-4 rounded-2xl shadow-lg' },
+            h('span', { className: 'text-xs font-bold text-emerald-400 uppercase tracking-wider' }, kpiTitles.emesShare),
+            h('p', { className: 'text-3xl font-black text-emerald-300 mt-1' }, formatMoney(metrics.driver1Share))
+          ),
+          activeDeviceObj.roleKey === 'owner' && h('div', { className: 'bg-amber-950/30 border border-amber-500/40 p-4 rounded-2xl shadow-lg' },
+            h('span', { className: 'text-xs font-bold text-amber-400 uppercase tracking-wider' }, kpiTitles.pelaoShare),
+            h('p', { className: 'text-3xl font-black text-amber-300 mt-1' }, formatMoney(metrics.ownerShare))
+          ),
+          activeDeviceObj.roleKey === 'admin' && h('div', { className: 'bg-purple-950/30 border border-purple-500/40 p-4 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-4' },
+            h('div', null,
+              h('span', { className: 'text-xs font-bold text-emerald-400 uppercase tracking-wider' }, kpiTitles.emesShare),
+              h('p', { className: 'text-2xl font-black text-emerald-300 mt-1' }, formatMoney(metrics.driver1Share))
+            ),
+            h('div', null,
+              h('span', { className: 'text-xs font-bold text-amber-400 uppercase tracking-wider' }, kpiTitles.pelaoShare),
+              h('p', { className: 'text-2xl font-black text-amber-300 mt-1' }, formatMoney(metrics.ownerShare))
+            )
+          ),
+          h('div', { className: 'bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-4' },
+            h('h3', { className: 'font-bold text-sm text-white flex items-center gap-2' }, h(FileText), ' Movimientos de este Mes'),
+            h('div', { className: 'space-y-2' },
+              monthlyMovements.length === 0 ? h('p', { className: 'text-xs text-slate-500 py-3 text-center' }, 'No hay movimientos en este mes.') :
+              monthlyMovements.map(item => h('div', { key: item.id, className: 'bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs gap-3' },
+                h('div', null,
+                  h('p', { className: `font-bold ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`),
+                  h('p', { className: 'text-slate-400 text-[11px] mt-0.5' }, item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description),
+                  h('span', { className: 'text-slate-500 text-[10px]' }, `${item.date} • Creado por: ${item.createdBy || 'Sistema'}`)
+                ),
+                h('div', { className: 'flex items-center gap-3' },
+                  h('span', { className: `font-bold ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, `${item.type === 'freight' ? '+' : '-'}${formatMoney(item.amount)}`),
+                  h('button', { onClick: () => handleDelete(item.id), className: 'text-slate-500 hover:text-rose-400 p-1', title: 'Eliminar' }, h(Trash2))
+                )
+              ))
+            )
+          )
+        ),
+        isKeysModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2' },
+              h('h3', { className: 'font-bold text-base text-white flex items-center gap-2' }, h(Shield), 'Administrar Claves'),
+              h('button', { onClick: () => setIsKeysModalOpen(false), className: 'text-slate-400 hover:text-white' }, h(X))
+            ),
+            h('form', { onSubmit: handleSaveKeys, className: 'space-y-3.5 text-xs' },
+              DEFAULT_DEVICES.map(dev => h('div', { key: dev.id, className: 'bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1' },
+                h('span', { className: 'font-bold text-slate-200 block' }, dev.name),
+                h('p', { className: 'text-[10px] text-slate-400 mb-1.5' }, dev.role),
+                h('div', { className: 'flex items-center gap-2' },
+                  h('label', { className: 'text-slate-400 text-[11px]' }, 'Clave / PIN:'),
+                  h('input', {
+                    type: 'text', maxLength: 10, required: true,
+                    value: editedPins[dev.id] || '',
+                    onChange: (e) => setEditedPins({ ...editedPins, [dev.id]: e.target.value }),
+                    className: 'bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-bold text-center w-28 focus:outline-none focus:border-emerald-500'
+                  })
+                )
+              )),
+              h('div', { className: 'flex justify-end gap-2 pt-3 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => setIsKeysModalOpen(false), className: 'px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-750' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl' }, 'Guardar Claves')
+              )
+            )
+          )
+        ),
+        isKpiModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2' },
+              h('h3', { className: 'font-bold text-base text-white flex items-center gap-2' }, h(Edit), 'Modificar KPI'),
+              h('button', { onClick: () => setIsKpiModalOpen(false), className: 'text-slate-400 hover:text-white' }, h(X))
+            ),
+            h('form', { onSubmit: handleSaveKpis, className: 'space-y-3.5 text-xs' },
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1.5' }, 'Nombre para Total Fletes'),
+                h('input', {
+                  type: 'text', required: true, value: editedKpis.freights || '',
+                  onChange: (e) => setEditedKpis({ ...editedKpis, freights: e.target.value }),
+                  className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500'
+                })
+              ),
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1.5' }, 'Nombre para Total Gastos'),
+                h('input', {
+                  type: 'text', required: true, value: editedKpis.expenses || '',
+                  onChange: (e) => setEditedKpis({ ...editedKpis, expenses: e.target.value }),
+                  className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500'
+                })
+              ),
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1.5' }, 'Nombre para Utilidad Neta'),
+                h('input', {
+                  type: 'text', required: true, value: editedKpis.netProfit || '',
+                  onChange: (e) => setEditedKpis({ ...editedKpis, netProfit: e.target.value }),
+                  className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500'
+                })
+              ),
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1.5' }, 'Nombre para 50% Conductor 1'),
+                h('input', {
+                  type: 'text', required: true, value: editedKpis.emesShare || '',
+                  onChange: (e) => setEditedKpis({ ...editedKpis, emesShare: e.target.value }),
+                  className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500'
+                })
+              ),
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1.5' }, 'Nombre para 50% Dueño'),
+                h('input', {
+                  type: 'text', required: true, value: editedKpis.pelaoShare || '',
+                  onChange: (e) => setEditedKpis({ ...editedKpis, pelaoShare: e.target.value }),
+                  className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500'
+                })
+              ),
+              h('div', { className: 'flex justify-end gap-2 pt-3 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => setIsKpiModalOpen(false), className: 'px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-750' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl' }, 'Guardar Cambios')
+              )
+            )
+          )
+        ),
+        isFreightModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2' },
+              h('h3', { className: 'font-bold text-base text-white' }, 'Ingresar Nuevo Flete'),
+              h('button', { onClick: () => setIsFreightModalOpen(false), className: 'text-slate-400' }, h(X))
+            ),
+            h('form', { onSubmit: handleSaveFreight, className: 'space-y-3 text-xs' },
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1' }, 'Cliente *'),
+                h('input', { type: 'text', required: true, value: freightForm.client, onChange: e => setFreightForm({ ...freightForm, client: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline' })
+              ),
+              h('div', { className: 'grid grid-cols-2 gap-2' },
+                h('div', null,
+                  h('label', { className: 'text-slate-400 block mb-1' }, 'Origen'),
+                  h('input', { type: 'text', value: freightForm.origin, onChange: e => setFreightForm({ ...freightForm, origin: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' })
+                ),
+                h('div', null,
+                  h('label', { className: 'text-slate-400 block mb-1' }, 'Destino'),
+                  h('input', { type: 'text', value: freightForm.destination, onChange: e => setFreightForm({ ...freightForm, destination: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' })
+                )
+              ),
+              h('div', { className: 'grid grid-cols-2 gap-2' },
+                h('div', null,
+                  h('label', { className: 'text-slate-400 block mb-1' }, 'Monto CLP *'),
+                  h('input', { type: 'number', required: true, value: freightForm.amount, onChange: e => setFreightForm({ ...freightForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-emerald-400 font-bold' })
+                ),
+                h('div', null,
+                  h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'),
+                  h('input', { type: 'date', value: freightForm.date, onChange: e => setFreightForm({ ...freightForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' })
+                )
+              ),
+              h('div', { className: 'flex justify-end gap-2 pt-3 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => setIsFreightModalOpen(false), className: 'px-4 py-2 bg-slate-800 text-slate-300 rounded-xl' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl' }, 'Guardar Flete')
+              )
+            )
+          )
+        ),
+        isExpenseModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2' },
+              h('h3', { className: 'font-bold text-base text-white' }, 'Ingresar Gasto'),
+              h('button', { onClick: () => setIsExpenseModalOpen(false), className: 'text-slate-400' }, h(X))
+            ),
+            h('form', { onSubmit: handleSaveExpense, className: 'space-y-3 text-xs' },
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1' }, 'Categoría'),
+                h('select', { value: expenseForm.category, onChange: e => setExpenseForm({ ...expenseForm, category: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' },
+                  ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'].map(c => h('option', { key: c, value: c }, c))
+                )
+              ),
+              h('div', null,
+                h('label', { className: 'text-slate-400 block mb-1' }, 'Descripción Breve *'),
+                h('input', { type: 'text', required: true, value: expenseForm.description, onChange: e => setExpenseForm({ ...expenseForm, description: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white', placeholder: 'Ej: Carga Diésel Shell / Peajes' })
+              ),
+              h('div', { className: 'grid grid-cols-2 gap-2' },
+                h('div', null,
+                  h('label', { className: 'text-slate-400 block mb-1' }, 'Monto CLP *'),
+                  h('input', { type: 'number', required: true, value: expenseForm.amount, onChange: e => setExpenseForm({ ...expenseForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-rose-400 font-bold' })
+                ),
+                h('div', null,
+                  h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'),
+                  h('input', { type: 'date', value: expenseForm.date, onChange: e => setExpenseForm({ ...expenseForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' })
+                )
+              ),
+              h('div', { className: 'flex justify-end gap-2 pt-3 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => setIsExpenseModalOpen(false), className: 'px-4 py-2 bg-slate-800 text-slate-300 rounded-xl' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2 bg-rose-600 text-white font-bold rounded-xl' }, 'Guardar Gasto')
+              )
+            )
+          )
+        )
+      );
+    }
+
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(h(App));
+  </script>
+</body>
+</html>

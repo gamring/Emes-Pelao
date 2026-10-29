@@ -8,7 +8,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- React & React DOM -->
+  <!-- React & React DOM (Versión de producción compatible) -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
   
@@ -518,22 +518,22 @@
             ),
             h('form', { onSubmit: handleSaveExpense, className: 'space-y-3 text-xs' },
               h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1' }, 'Categoría'),
+                h('label', { className: 'text-slate-400 block mb-1 text-[11px]' }, 'Categoría'),
                 h('select', { value: expenseForm.category, onChange: e => setExpenseForm({ ...expenseForm, category: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' },
                   ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'].map(c => h('option', { key: c, value: c }, c))
                 )
               ),
               h('div', null,
-                h('label', { className: 'text-slate-400 block mb-1' }, 'Descripción Breve *'),
+                h('label', { className: 'text-slate-400 block mb-1 text-[11px]' }, 'Descripción Breve *'),
                 h('input', { type: 'text', required: true, value: expenseForm.description, onChange: e => setExpenseForm({ ...expenseForm, description: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white', placeholder: 'Ej: Carga Diésel Shell / Peajes' })
               ),
               h('div', { className: 'grid grid-cols-2 gap-2' },
                 h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1' }, 'Monto CLP *'),
+                  h('label', { className: 'text-slate-400 block mb-1 text-[11px]' }, 'Monto CLP *'),
                   h('input', { type: 'number', required: true, value: expenseForm.amount, onChange: e => setExpenseForm({ ...expenseForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-rose-400 font-bold' })
                 ),
                 h('div', null,
-                  h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'),
+                  h('label', { className: 'text-slate-400 block mb-1 text-[11px]' }, 'Fecha'),
                   h('input', { type: 'date', value: expenseForm.date, onChange: e => setExpenseForm({ ...expenseForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white' })
                 )
               ),
@@ -547,9 +547,8 @@
       );
     }
 
-    const rootElement = document.getElementById('root');
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(h(App));
+    // Inicialización estándar para la máxima compatibilidad de renderizado
+    ReactDOM.render(h(App), document.getElementById('root'));
   </script>
 </body>
 </html>

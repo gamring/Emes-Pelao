@@ -258,7 +258,7 @@
           }
         });
 
-        const totalCashIn = paidInvoices + unInvoiced; // Ingresos reales cobrados + no facturados
+        const totalCashIn = paidInvoices + unInvoiced; // Ingresos cobrados + no facturados
         const netTotal = netFreights - totalExpenses;
         const halfShare = netTotal > 0 ? netTotal * 0.5 : 0;
 
@@ -283,7 +283,7 @@
         }
       };
 
-      // Exportar a Excel (CSV)
+      // Generar y Descargar archivo Excel (.csv)
       const handleExportCSV = () => {
         if (monthlyMovements.length === 0) {
           alert('No hay movimientos registrados en este mes para exportar.');
@@ -477,4 +477,106 @@
             ),
 
             // --- SECCIÓN KPIS DE FACTURACIÓN (DISPOSITIVOS 1, 2 Y 3) ---
-            h('div
+            h('div', { className: 'bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3' },
+              h('h3', { className: 'text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2' }, 'Estado e Ingresos de Facturación'),
+              h('div', { className: 'grid grid-cols-1 sm:grid-cols-4 gap-4' },
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-emerald-900/50' },
+                  h('span', { className: 'text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest block' }, 'FACTURA PAGADA'),
+                  h('p', { className: 'text-xl font-black text-emerald-400 mt-1' }, formatMoney(metrics.paidInvoices))
+                ),
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-amber-900/50' },
+                  h('span', { className: 'text-[10px] font-extrabold text-amber-400 uppercase tracking-widest block' }, 'FACTURA PENDIENTE'),
+                  h('p', { className: 'text-xl font-black text-amber-400 mt-1' }, formatMoney(metrics.pendingInvoices))
+                ),
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-slate-800' },
+                  h('span', { className: 'text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block' }, 'NO FACTURADO / EMITIDO'),
+                  h('p', { className: 'text-xl font-black text-slate-300 mt-1' }, formatMoney(metrics.unInvoiced))
+                ),
+                h('div', { className: 'bg-slate-950 p-4 rounded-xl border border-emerald-500/30' },
+                  h('span', { className: 'text-[10px] font-extrabold text-emerald-300 uppercase tracking-widest block' }, 'INGRESOS TOTALES COBRADOS'),
+                  h('p', { className: 'text-xl font-black text-emerald-300 mt-1' }, formatMoney(metrics.totalCashIn))
+                )
+              )
+            )
+          ),
+
+          // Beneficios 50/50
+          activeDeviceObj.roleKey !== 'driver2' && [
+            activeDeviceObj.roleKey === 'driver1' && h('div', { key: 'sh-driver1', className: 'bg-slate-900 border border-emerald-500/40 p-5 rounded-2xl shadow-xl' },
+              h('span', { className: 'text-xs font-black text-emerald-400 uppercase tracking-wider' }, kpiTitles.emesShare),
+              h('p', { className: 'text-4xl font-black text-emerald-400 mt-2' }, formatMoney(metrics.driver1Share))
+            ),
+            activeDeviceObj.roleKey === 'owner' && h('div', { key: 'sh-owner', className: 'bg-slate-900 border border-amber-500/40 p-5 rounded-2xl shadow-xl' },
+              h('span', { className: 'text-xs font-black text-amber-400 uppercase tracking-wider' }, kpiTitles.pelaoShare),
+              h('p', { className: 'text-4xl font-black text-amber-400 mt-2' }, formatMoney(metrics.ownerShare))
+            ),
+            activeDeviceObj.roleKey === 'admin' && h('div', { key: 'sh-admin', className: 'bg-slate-900 border border-slate-800 p-5.5 rounded-2xl shadow-lg grid grid-cols-1 sm:grid-cols-2 gap-5' },
+              h('div', { className: 'border-b sm:border-b-0 sm:border-r border-slate-800 pb-4 sm:pb-0 sm:pr-4' },
+                h('span', { className: 'text-xs font-black text-emerald-400 uppercase tracking-wider' }, kpiTitles.emesShare),
+                h('p', { className: 'text-3.5xl font-black text-emerald-400 mt-2 tracking-tight' }, formatMoney(metrics.driver1Share))
+              ),
+              h('div', { className: 'pt-4 sm:pt-0' },
+                h('span', { className: 'text-xs font-black text-amber-400 uppercase tracking-wider' }, kpiTitles.pelaoShare),
+                h('p', { className: 'text-3.5xl font-black text-amber-400 mt-2 tracking-tight' }, formatMoney(metrics.ownerShare))
+              )
+            )
+          ],
+
+          h('div', { className: 'bg-slate-900 rounded-2xl border border-slate-800 p-5.5 space-y-4 shadow-xl' },
+            h('h3', { className: 'font-black text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3 uppercase tracking-wide' }, 
+              h(FileText), 
+              activeDeviceObj.roleKey === 'driver2' ? 'Mis Gastos Registrados' : 'Movimientos del Mes Registrados'
+            ),
+            h('div', { className: 'space-y-2.5' },
+              monthlyMovements.length === 0 ? h('p', { className: 'text-xs text-slate-500 py-6 text-center font-bold' }, 'No existen movimientos registrados para el mes seleccionado.') :
+              monthlyMovements.map(item => h('div', { key: item.id, className: 'bg-slate-955 p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs gap-3 shadow' },
+                h('div', { className: 'space-y-1' },
+                  h('div', { className: 'flex items-center gap-2 flex-wrap' },
+                    h('p', { className: `font-extrabold text-[13.5px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`),
+                    item.type === 'freight' && h('span', { className: `text-[8.5px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${item.invoicingStatus === 'No Facturado' ? 'bg-slate-800 text-slate-300 border border-slate-700' : item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}` }, item.invoicingStatus)
+                  ),
+                  h('p', { className: 'text-slate-300 text-[11px] font-semibold tracking-wide' }, item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description),
+                  h('span', { className: 'text-slate-400 text-[10px] font-semibold block pt-1.5' }, `${item.date} • Registrado por: ${item.createdBy || 'Sistema'}`)
+                ),
+                h('div', { className: 'flex items-center gap-3 shrink-0' },
+                  h('span', { className: `font-black text-[14px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, `${item.type === 'freight' ? '+' : '-'}${formatMoney(item.amount)}`),
+                  activeDeviceObj.roleKey === 'admin' && h('button', { onClick: () => handleDelete(item.id), className: 'text-slate-500 hover:text-rose-400 p-2 rounded-lg hover:bg-slate-900 transition-all border border-transparent hover:border-slate-800', title: 'Eliminar Registro' }, h(Trash2))
+                )
+              ))
+            )
+          )
+        ),
+
+        // --- MODAL CLAVES ---
+        isKeysModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2.5' },
+              h('h3', { className: 'font-black text-sm text-white flex items-center gap-2' }, h(Shield), 'Administrar Claves de Acceso'),
+              h('button', { onClick: () => setIsKeysModalOpen(false), className: 'text-slate-400 hover:text-white p-1 rounded-lg' }, h(X))
+            ),
+            h('form', { onSubmit: handleSaveKeys, className: 'space-y-3.5 text-xs' },
+              DEFAULT_DEVICES.map(dev => h('div', { key: dev.id, className: 'bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1' },
+                h('span', { className: 'font-extrabold text-slate-200 block' }, dev.name),
+                h('p', { className: 'text-[10px] text-slate-400 font-bold pb-1.5' }, dev.role),
+                h('div', { className: 'flex items-center gap-2' },
+                  h('label', { className: 'text-slate-400 text-[11px] font-bold' }, 'Clave / PIN:'),
+                  h('input', {
+                    type: 'text', maxLength: 10, required: true,
+                    value: editedPins[dev.id] || '',
+                    onChange: (e) => setEditedPins({ ...editedPins, [dev.id]: e.target.value }),
+                    className: 'bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-black text-center w-28 focus:outline-none focus:border-emerald-500'
+                  })
+                )
+              )),
+              h('div', { className: 'flex justify-end gap-2 pt-3.5 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => setIsKeysModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 font-extrabold' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl shadow' }, 'Guardar Claves')
+              )
+            )
+          )
+        ),
+
+        // --- MODAL KPIs ---
+        isKpiModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-8

@@ -20,7 +20,7 @@
   <div id="root"></div>
 
   <script>
-    // --- MANEJO DE ERRORES GLOBAL PARA EVITAR PANTALLA AZUL EN BLANCO ---
+    // --- MANEJO DE ERRORES GLOBAL ---
     window.addEventListener('error', function(e) {
       console.error('Error detectado:', e);
       const rootDiv = document.getElementById('root');
@@ -83,25 +83,25 @@
       h('line', { x1: '12', y1: '15', x2: '12', y2: '3' })
     );
 
-    // --- DATOS POR DEFECTO ---
+    // --- DATOS INICIALES ---
     const INITIAL_MOVEMENTS = [
-      { id: 'fl-101', type: 'freight', client: 'Constructora Del Sol', origin: 'Santiago Central', destination: 'Valparaíso Puerto', amount: 300000, date: '2026-10-25', invoicingStatus: 'Factura Pagada', createdBy: 'Dispositivo 1 - Emes' },
-      { id: 'exp-201', type: 'expense', category: 'Combustible', amount: 60000, date: '2026-10-25', description: 'Carga Diésel Shell', createdBy: 'Dispositivo 1 - Emes' },
-      { id: 'fl-102', type: 'freight', client: 'Agrocomercial Norte', origin: 'Rancagua', destination: 'Coquimbo', amount: 480000, date: '2026-10-27', invoicingStatus: 'No Facturado', createdBy: 'Dispositivo 4 - Conductor 2' },
-      { id: 'exp-203', type: 'expense', category: 'Combustible', amount: 110000, date: '2026-10-27', description: 'Estación Copec', createdBy: 'Dispositivo 4 - Conductor 2' }
+      { id: 'fl-101', type: 'freight', client: 'Constructora Del Sol', origin: 'Santiago Central', destination: 'Valparaíso Puerto', amount: 300000, date: '2026-10-25', invoicingStatus: 'Factura Pagada', createdBy: 'Dispositivo 3 - Administrador General' },
+      { id: 'exp-201', type: 'expense', category: 'Combustible', amount: 60000, date: '2026-10-25', description: 'Carga Diésel Shell', createdBy: 'Dispositivo 3 - Administrador General' },
+      { id: 'fl-102', type: 'freight', client: 'Agrocomercial Norte', origin: 'Rancagua', destination: 'Coquimbo', amount: 480000, date: '2026-10-27', invoicingStatus: 'No Facturado', createdBy: 'Dispositivo 3 - Administrador General' },
+      { id: 'exp-203', type: 'expense', category: 'Combustible', amount: 110000, date: '2026-10-27', description: 'Estación Copec', createdBy: 'Dispositivo 3 - Administrador General' }
     ];
 
     const DEFAULT_DEVICES = [
-      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (50% Beneficio Total)', defaultPin: '1234' },
-      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Pelao', role: 'Pelao (50% Beneficio Total)', defaultPin: '1234' },
-      { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total & Facturación', defaultPin: '0000' },
-      { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor Registro Gastos', defaultPin: '1234' }
+      { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (Consulta)', defaultPin: '1234' },
+      { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Pelao', role: 'Pelao (Consulta)', defaultPin: '1234' },
+      { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total (Crear, Modificar, Eliminar)', defaultPin: '0000' },
+      { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor (Consulta)', defaultPin: '1234' }
     ];
 
     function App() {
       const [movements, setMovements] = useState(() => {
         try {
-          const saved = localStorage.getItem('fletes_movements_v2');
+          const saved = localStorage.getItem('fletes_movements_v3');
           return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
         } catch (e) { return INITIAL_MOVEMENTS; }
       });
@@ -119,9 +119,10 @@
       const [expenseForm, setExpenseForm] = useState({ category: 'Combustible', amount: '', description: '', date: '2026-10-28' });
 
       const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2], [currentDevice]);
+      const isAdmin = activeDeviceObj.roleKey === 'admin';
 
       useEffect(() => {
-        try { localStorage.setItem('fletes_movements_v2', JSON.stringify(movements)); } catch (e) {}
+        try { localStorage.setItem('fletes_movements_v3', JSON.stringify(movements)); } catch (e) {}
       }, [movements]);
 
       const handleLogin = (e) => {
@@ -131,14 +132,14 @@
           setLoginError('');
           setPinInput('');
         } else {
-          setLoginError('Clave incorrecta (PIN por defecto: 0000 para Admin, 1234 para otros)');
+          setLoginError('Clave incorrecta (PIN Administrador: 0000, Otros: 1234)');
         }
       };
 
       const monthlyMovements = useMemo(() => {
         const filtered = movements.filter(m => m.date && m.date.startsWith(selectedMonth));
         if (activeDeviceObj.roleKey === 'driver2') {
-          return filtered.filter(m => m.createdBy === activeDeviceObj.name && m.type === 'expense');
+          return filtered.filter(m => m.type === 'expense');
         }
         return filtered;
       }, [movements, selectedMonth, activeDeviceObj]);
@@ -175,10 +176,35 @@
 
       const formatMoney = (val) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(val);
 
+      // --- ACCIONES EXCLUSIVAS DEL ADMINISTRADOR ---
       const handleDelete = (id) => {
-        if (confirm('¿Deseas eliminar este registro?')) {
+        if (!isAdmin) return alert('Solo el Administrador General puede eliminar registros.');
+        if (confirm('¿Deseas eliminar este registro de forma permanente?')) {
           setMovements(movements.filter(m => m.id !== id));
         }
+      };
+
+      const handleUpdateInvoicingStatus = (id, newStatus) => {
+        if (!isAdmin) return alert('Solo el Administrador General puede modificar estados.');
+        setMovements(movements.map(m => m.id === id ? { ...m, invoicingStatus: newStatus } : m));
+      };
+
+      const handleSaveFreight = (e) => {
+        e.preventDefault();
+        if (!isAdmin) return alert('Solo el Administrador General puede agregar fletes.');
+        if (!freightForm.client || !freightForm.amount) return;
+        setMovements([{ id: `fl-${Date.now().toString().slice(-4)}`, type: 'freight', ...freightForm, amount: Number(freightForm.amount), createdBy: currentDevice }, ...movements]);
+        setIsFreightModalOpen(false);
+        setFreightForm({ client: '', origin: '', destination: '', amount: '', date: '2026-10-28', invoicingStatus: 'No Facturado' });
+      };
+
+      const handleSaveExpense = (e) => {
+        e.preventDefault();
+        if (!isAdmin) return alert('Solo el Administrador General puede agregar gastos.');
+        if (!expenseForm.amount || !expenseForm.description) return;
+        setMovements([{ id: `exp-${Date.now().toString().slice(-4)}`, type: 'expense', ...expenseForm, amount: Number(expenseForm.amount), createdBy: currentDevice }, ...movements]);
+        setIsExpenseModalOpen(false);
+        setExpenseForm({ category: 'Combustible', amount: '', description: '', date: '2026-10-28' });
       };
 
       const handleExportCSV = () => {
@@ -194,22 +220,6 @@
         link.href = encodeURI(csvContent);
         link.download = `Reporte_${selectedMonth}.csv`;
         link.click();
-      };
-
-      const handleSaveFreight = (e) => {
-        e.preventDefault();
-        if (!freightForm.client || !freightForm.amount) return;
-        setMovements([{ id: `fl-${Date.now().toString().slice(-4)}`, type: 'freight', ...freightForm, amount: Number(freightForm.amount), createdBy: currentDevice }, ...movements]);
-        setIsFreightModalOpen(false);
-        setFreightForm({ client: '', origin: '', destination: '', amount: '', date: '2026-10-28', invoicingStatus: 'No Facturado' });
-      };
-
-      const handleSaveExpense = (e) => {
-        e.preventDefault();
-        if (!expenseForm.amount || !expenseForm.description) return;
-        setMovements([{ id: `exp-${Date.now().toString().slice(-4)}`, type: 'expense', ...expenseForm, amount: Number(expenseForm.amount), createdBy: currentDevice }, ...movements]);
-        setIsExpenseModalOpen(false);
-        setExpenseForm({ category: 'Combustible', amount: '', description: '', date: '2026-10-28' });
       };
 
       // --- PANTALLA LOGIN ---
@@ -254,7 +264,7 @@
               )
             ),
             h('div', { className: 'flex items-center gap-3' },
-              h('span', { className: 'hidden md:inline text-xs text-emerald-400 bg-slate-800 border border-slate-700 px-3.5 py-1.5 rounded-xl font-extrabold' }, activeDeviceObj.name),
+              h('span', { className: `hidden md:inline text-xs px-3.5 py-1.5 rounded-xl font-extrabold border ${isAdmin ? 'text-amber-400 bg-amber-950/40 border-amber-800' : 'text-emerald-400 bg-slate-800 border-slate-700'}` }, activeDeviceObj.name),
               h('button', { onClick: () => setIsAuthenticated(false), className: 'p-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl border border-slate-700 shadow' }, h(LogOut))
             )
           )
@@ -268,14 +278,18 @@
             ),
             h('div', { className: 'flex flex-wrap items-center gap-2.5 w-full lg:w-auto' },
               h('button', { onClick: handleExportCSV, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 text-emerald-400 font-extrabold text-xs px-4 py-2.5 rounded-xl' }, h(Download), 'Exportar Excel'),
-              activeDeviceObj.roleKey !== 'driver2' && h('button', { onClick: () => setIsFreightModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow' }, h(PlusCircle), '+ Flete'),
-              h('button', { onClick: () => setIsExpenseModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow' }, h(Camera), '+ Gasto')
+              
+              // BOTONES EXCLUSIVOS DE ADMINISTRADOR
+              isAdmin && [
+                h('button', { key: 'btn-add-fl', onClick: () => setIsFreightModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow' }, h(PlusCircle), '+ Flete'),
+                h('button', { key: 'btn-add-exp', onClick: () => setIsExpenseModalOpen(true), className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow' }, h(Camera), '+ Gasto')
+              ]
             )
           ),
 
           activeDeviceObj.roleKey === 'driver2' ? 
           h('div', { className: 'bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl' },
-            h('span', { className: 'text-xs text-rose-400 font-black tracking-wider block mb-1.5 uppercase' }, 'MIS GASTOS REGISTRADOS ESTE MES'),
+            h('span', { className: 'text-xs text-rose-400 font-black tracking-wider block mb-1.5 uppercase' }, 'GASTOS DEL MES'),
             h('p', { className: 'text-4xl font-black text-rose-400' }, formatMoney(metrics.totalExpenses))
           ) :
           h('div', { className: 'space-y-5' },
@@ -316,31 +330,45 @@
           ),
 
           h('div', { className: 'bg-slate-900 rounded-2xl border border-slate-800 p-5.5 space-y-4 shadow-xl' },
-            h('h3', { className: 'font-black text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3 uppercase' }, h(FileText), activeDeviceObj.roleKey === 'driver2' ? 'Mis Gastos Registrados' : 'Movimientos del Mes Registrados'),
+            h('h3', { className: 'font-black text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3 uppercase' }, h(FileText), activeDeviceObj.roleKey === 'driver2' ? 'Gastos Registrados' : 'Movimientos del Mes Registrados'),
             h('div', { className: 'space-y-2.5' },
               monthlyMovements.length === 0 ? h('p', { className: 'text-xs text-slate-500 py-6 text-center font-bold' }, 'No existen movimientos este mes.') :
               monthlyMovements.map(item => h('div', { key: item.id, className: 'bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs gap-3 shadow' },
                 h('div', { className: 'space-y-1' },
                   h('div', { className: 'flex items-center gap-2 flex-wrap' },
                     h('p', { className: `font-extrabold text-[13.5px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`),
-                    item.type === 'freight' && h('span', { className: `text-[8.5px] font-black px-2 py-0.5 rounded uppercase ${item.invoicingStatus === 'No Facturado' ? 'bg-slate-800 text-slate-300' : item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}` }, item.invoicingStatus)
+                    
+                    // EDICIÓN DE ESTADO POR ADMINISTRADOR
+                    item.type === 'freight' && (
+                      isAdmin ? h('select', {
+                        value: item.invoicingStatus,
+                        onChange: (e) => handleUpdateInvoicingStatus(item.id, e.target.value),
+                        className: 'bg-slate-800 text-[10px] font-bold text-slate-200 border border-slate-700 rounded px-1.5 py-0.5 focus:outline-none'
+                      },
+                        h('option', { value: 'No Facturado' }, 'No Facturado'),
+                        h('option', { value: 'Factura Pagada' }, 'Factura Pagada'),
+                        h('option', { value: 'Factura Pendiente' }, 'Factura Pendiente')
+                      ) : h('span', { className: `text-[8.5px] font-black px-2 py-0.5 rounded uppercase ${item.invoicingStatus === 'No Facturado' ? 'bg-slate-800 text-slate-300' : item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}` }, item.invoicingStatus)
+                    )
                   ),
                   h('p', { className: 'text-slate-300 text-[11px] font-semibold' }, item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description),
                   h('span', { className: 'text-slate-400 text-[10px] font-semibold block pt-1.5' }, `${item.date} • ${item.createdBy}`)
                 ),
                 h('div', { className: 'flex items-center gap-3 shrink-0' },
                   h('span', { className: `font-black text-[14px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, `${item.type === 'freight' ? '+' : '-'}${formatMoney(item.amount)}`),
-                  activeDeviceObj.roleKey === 'admin' && h('button', { onClick: () => handleDelete(item.id), className: 'text-slate-500 hover:text-rose-400 p-2' }, h(Trash2))
+                  
+                  // ELIMINAR EXCLUSIVO ADMINISTRADOR
+                  isAdmin && h('button', { onClick: () => handleDelete(item.id), className: 'text-slate-500 hover:text-rose-400 p-2', title: 'Eliminar Registro' }, h(Trash2))
                 )
               ))
             )
           )
         ),
 
-        // MODAL FLETE
+        // MODAL FLETE (ADMIN)
         isFreightModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
           h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
-            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, 'Ingresar Nuevo Flete'),
+            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, 'Ingresar Nuevo Flete (Modo Admin)'),
             h('form', { onSubmit: handleSaveFreight, className: 'space-y-3.5 text-xs' },
               h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Cliente *'), h('input', { type: 'text', required: true, value: freightForm.client, onChange: e => setFreightForm({ ...freightForm, client: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold' })),
               h('div', { className: 'grid grid-cols-2 gap-2.5' },
@@ -360,10 +388,10 @@
           )
         ),
 
-        // MODAL GASTO
+        // MODAL GASTO (ADMIN)
         isExpenseModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
           h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
-            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, 'Ingresar Gasto'),
+            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, 'Ingresar Gasto (Modo Admin)'),
             h('form', { onSubmit: handleSaveExpense, className: 'space-y-3.5 text-xs' },
               h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Categoría'), h('select', { value: expenseForm.category, onChange: e => setExpenseForm({ ...expenseForm, category: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold' }, ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'].map(c => h('option', { key: c, value: c }, c)))),
               h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Descripción *'), h('input', { type: 'text', required: true, value: expenseForm.description, onChange: e => setExpenseForm({ ...expenseForm, description: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold', placeholder: 'Ej: Shell Diésel' })),

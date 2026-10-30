@@ -25,7 +25,6 @@
   </div>
 
   <script>
-    // Captura de errores globales para evitar pantallas bloqueadas
     window.addEventListener('error', function(e) {
       console.error('[Error de Ejecución Detectado]:', e);
       var rootDiv = document.getElementById('root');
@@ -48,7 +47,7 @@
 
       const { useState, useEffect, useMemo, useRef, Fragment, createElement: h } = React;
 
-      // --- ICONOS VECTORIALES COMPATIBLES ---
+      // --- ICONOS VECTORIALES ---
       const Truck = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-5 h-5' },
         h('path', { d: 'M14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v10' }),
         h('path', { d: 'M14 10h4l4 4v4H14v-8z' }),
@@ -128,7 +127,7 @@
 
       // --- CONFIGURACIÓN DE DISPOSITIVOS ---
       const DEFAULT_DEVICES = [
-        { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (Consulta & Beneficios)', defaultPin: '1234' },
+        { id: 'dev-1', roleKey: 'driver1', name: 'Dispositivo 1 - Emes', role: 'Emes (Registro, Consulta & Beneficios)', defaultPin: '1234' },
         { id: 'dev-2', roleKey: 'owner', name: 'Dispositivo 2 - Pelao', role: 'Pelao (Consulta & Beneficios)', defaultPin: '1234' },
         { id: 'dev-3', roleKey: 'admin', name: 'Dispositivo 3 - Administrador General', role: 'Control Total (Crear, Modificar, Eliminar)', defaultPin: '0000' },
         { id: 'dev-4', roleKey: 'driver2', name: 'Dispositivo 4 - Conductor 2', role: 'Conductor (Consulta Operativa Gastos)', defaultPin: '1234' }
@@ -144,7 +143,7 @@
       function App() {
         const [movements, setMovements] = useState(() => {
           try {
-            const saved = localStorage.getItem('fletes_v12_enterprise');
+            const saved = localStorage.getItem('fletes_v13_enterprise');
             return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
           } catch (e) { return INITIAL_MOVEMENTS; }
         });
@@ -153,13 +152,13 @@
           const initPins = {};
           DEFAULT_DEVICES.forEach(d => initPins[d.id] = d.defaultPin);
           try {
-            const savedPins = localStorage.getItem('fletes_device_pins_v12');
+            const savedPins = localStorage.getItem('fletes_device_pins_v13');
             if (savedPins) return { ...initPins, ...JSON.parse(savedPins) };
           } catch (e) {}
           return initPins;
         });
 
-        const [currentDevice, setCurrentDevice] = useState(DEFAULT_DEVICES[2].name);
+        const [currentDevice, setCurrentDevice] = useState(DEFAULT_DEVICES[0].name);
         const [isAuthenticated, setIsAuthenticated] = useState(false);
         const [pinInput, setPinInput] = useState('');
         const [loginError, setLoginError] = useState('');
@@ -178,13 +177,16 @@
         const cameraInputRef = useRef(null);
         const galleryInputRef = useRef(null);
 
-        const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[2], [currentDevice]);
+        const activeDeviceObj = useMemo(() => DEFAULT_DEVICES.find(d => d.name === currentDevice) || DEFAULT_DEVICES[0], [currentDevice]);
+        
+        // PERMISOS: Administrador (admin) o Emes (driver1) pueden crear fletes y gastos
         const isAdmin = activeDeviceObj.roleKey === 'admin';
+        const canCreate = activeDeviceObj.roleKey === 'admin' || activeDeviceObj.roleKey === 'driver1';
 
         useEffect(() => {
           try { 
-            localStorage.setItem('fletes_v12_enterprise', JSON.stringify(movements));
-            localStorage.setItem('fletes_device_pins_v12', JSON.stringify(devicePins));
+            localStorage.setItem('fletes_v13_enterprise', JSON.stringify(movements));
+            localStorage.setItem('fletes_device_pins_v13', JSON.stringify(devicePins));
           } catch (e) {}
         }, [movements, devicePins]);
 
@@ -286,14 +288,14 @@
         };
 
         const handleDelete = (id) => {
-          if (!isAdmin) return alert('Solo Administrador General.');
+          if (!isAdmin) return alert('Solo el Administrador General puede eliminar registros.');
           if (confirm('¿Confirmas la eliminación permanente de este registro?')) {
             setMovements(movements.filter(m => m.id !== id));
           }
         };
 
         const handleStartEdit = (item) => {
-          if (!isAdmin) return alert('Solo Administrador General.');
+          if (!isAdmin) return alert('Solo el Administrador General puede modificar registros existentes.');
           setEditingId(item.id);
           if (item.type === 'freight') {
             setFreightForm({ client: item.client, origin: item.origin || '', destination: item.destination || '', amount: item.amount, date: item.date, invoicingStatus: item.invoicingStatus || 'No Facturado' });
@@ -305,13 +307,13 @@
         };
 
         const handleUpdateInvoicingStatus = (id, newStatus) => {
-          if (!isAdmin) return alert('Solo Administrador General.');
+          if (!isAdmin) return alert('Solo el Administrador General puede alterar estados de facturación.');
           setMovements(movements.map(m => m.id === id ? { ...m, invoicingStatus: newStatus } : m));
         };
 
         const handleSaveFreight = (e) => {
           e.preventDefault();
-          if (!isAdmin) return alert('Solo Administrador General.');
+          if (!canCreate) return alert('No tienes permisos para registrar fletes.');
           if (!freightForm.client || !freightForm.amount) return;
 
           if (editingId) {
@@ -326,7 +328,7 @@
 
         const handleSaveExpense = (e) => {
           e.preventDefault();
-          if (!isAdmin) return alert('Solo Administrador General.');
+          if (!canCreate) return alert('No tienes permisos para registrar gastos.');
           if (!expenseForm.amount || !expenseForm.description) return;
 
           if (editingId) {
@@ -361,7 +363,7 @@
           link.click();
         };
 
-        // VISTA DE LOGIN
+        // LOGIN
         if (!isAuthenticated) {
           return h('div', { className: 'min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4' },
             h('div', { className: 'max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 text-center shadow-2xl' },
@@ -391,7 +393,7 @@
           );
         }
 
-        // VISTA PRINCIPAL (DASHBOARD)
+        // PANEL PRINCIPAL
         return h('div', { className: 'min-h-screen bg-slate-950 text-slate-100 pb-20' },
           h('header', { className: 'bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10 shadow-lg' },
             h('div', { className: 'max-w-6xl mx-auto flex justify-between items-center gap-3' },
@@ -429,7 +431,8 @@
                   className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow'
                 }, h(Key), 'Control Claves'),
 
-                isAdmin ? h(Fragment, null,
+                // BOTONES DE REGISTRO HABILITADOS PARA ADMINISTRADOR Y DISPOSITIVO 1 (EMES)
+                canCreate ? h(Fragment, null,
                   h('button', { onClick: () => { setEditingId(null); setIsFreightModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(PlusCircle), '+ Flete'),
                   h('button', { onClick: () => { setEditingId(null); setIsExpenseModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(Camera), '+ Gasto')
                 ) : h('span', { className: 'text-[11px] text-slate-400 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 font-bold' }, '🔒 Modo Consulta')

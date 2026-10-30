@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Emes & Pelao - Control de Fletes y Servicios</title>
   
-  <!-- Tailwind CSS Engine -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- React 18 Engine -->
+  <!-- React 18 CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
   
@@ -19,22 +19,21 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
   
   <div id="root">
-    <!-- Mensaje de Carga / Fallback si el navegador no ejecuta JavaScript -->
-    <div style="min-h-screen: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; color: #94a3b8;">
+    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; color: #94a3b8;">
       <p style="font-size: 14px; font-weight: bold;">Cargando Sistema de Fletes...</p>
     </div>
   </div>
 
   <script>
-    // Guardián contra errores de sintaxis o runtime
+    // Captura de errores globales para evitar pantallas bloqueadas
     window.addEventListener('error', function(e) {
-      console.error('[Error de Ejecución]:', e);
+      console.error('[Error de Ejecución Detectado]:', e);
       var rootDiv = document.getElementById('root');
       if (rootDiv) {
         rootDiv.innerHTML = '<div style="padding:30px; text-align:center; color:#f87171; background-color:#0f172a; border-radius:12px; margin:20px; border:1px solid #1e293b;">' +
-          '<h2 style="font-size:16px; font-weight:bold;">⚠️ Error de Carga o Conexión</h2>' +
-          '<p style="color:#94a3b8; font-size:12px; margin-top:8px;">Verifica tu conexión a internet o restablece los datos locales del sitio.</p>' +
-          '<button onclick="localStorage.clear();location.reload();" style="background:#059669;color:white;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;margin-top:16px;cursor:pointer;">Restablecer Aplicación</button>' +
+          '<h2 style="font-size:16px; font-weight:bold;">⚠️ Inconsistencia de Datos Detectada</h2>' +
+          '<p style="color:#94a3b8; font-size:12px; margin-top:8px;">Ocurrió un inconveniente al cargar el panel principal.</p>' +
+          '<button onclick="localStorage.clear();location.reload();" style="background:#059669;color:white;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;margin-top:16px;cursor:pointer;">Restablecer Sesión y Datos</button>' +
         '</div>';
       }
     });
@@ -43,13 +42,13 @@
   <script>
     (function() {
       if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
-        console.error('React o ReactDOM no han podido cargarse desde la CDN.');
+        console.error('React o ReactDOM no se cargaron correctamente.');
         return;
       }
 
-      const { useState, useEffect, useMemo, useRef, createElement: h } = React;
+      const { useState, useEffect, useMemo, useRef, Fragment, createElement: h } = React;
 
-      // --- ICONOS VECTORIALES ---
+      // --- ICONOS VECTORIALES COMPATIBLES ---
       const Truck = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', className: 'w-5 h-5' },
         h('path', { d: 'M14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v10' }),
         h('path', { d: 'M14 10h4l4 4v4H14v-8z' }),
@@ -145,7 +144,7 @@
       function App() {
         const [movements, setMovements] = useState(() => {
           try {
-            const saved = localStorage.getItem('fletes_v11_enterprise');
+            const saved = localStorage.getItem('fletes_v12_enterprise');
             return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
           } catch (e) { return INITIAL_MOVEMENTS; }
         });
@@ -154,7 +153,7 @@
           const initPins = {};
           DEFAULT_DEVICES.forEach(d => initPins[d.id] = d.defaultPin);
           try {
-            const savedPins = localStorage.getItem('fletes_device_pins_v11');
+            const savedPins = localStorage.getItem('fletes_device_pins_v12');
             if (savedPins) return { ...initPins, ...JSON.parse(savedPins) };
           } catch (e) {}
           return initPins;
@@ -184,8 +183,8 @@
 
         useEffect(() => {
           try { 
-            localStorage.setItem('fletes_v11_enterprise', JSON.stringify(movements));
-            localStorage.setItem('fletes_device_pins_v11', JSON.stringify(devicePins));
+            localStorage.setItem('fletes_v12_enterprise', JSON.stringify(movements));
+            localStorage.setItem('fletes_device_pins_v12', JSON.stringify(devicePins));
           } catch (e) {}
         }, [movements, devicePins]);
 
@@ -197,12 +196,12 @@
             setLoginError('');
             setPinInput('');
           } else {
-            setLoginError(`PIN inválido.`);
+            setLoginError(`PIN inválido para el perfil seleccionado.`);
           }
         };
 
         const monthlyMovements = useMemo(() => {
-          const filtered = movements.filter(m => m.date && m.date.startsWith(selectedMonth));
+          const filtered = movements.filter(m => m && m.date && m.date.startsWith(selectedMonth));
           if (activeDeviceObj.roleKey === 'driver2') {
             return filtered.filter(m => m.type === 'expense');
           }
@@ -362,6 +361,7 @@
           link.click();
         };
 
+        // VISTA DE LOGIN
         if (!isAuthenticated) {
           return h('div', { className: 'min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4' },
             h('div', { className: 'max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 text-center shadow-2xl' },
@@ -391,6 +391,7 @@
           );
         }
 
+        // VISTA PRINCIPAL (DASHBOARD)
         return h('div', { className: 'min-h-screen bg-slate-950 text-slate-100 pb-20' },
           h('header', { className: 'bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10 shadow-lg' },
             h('div', { className: 'max-w-6xl mx-auto flex justify-between items-center gap-3' },
@@ -428,10 +429,10 @@
                   className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow'
                 }, h(Key), 'Control Claves'),
 
-                isAdmin ? [
-                  h('button', { key: 'btn-add-fl', onClick: () => { setEditingId(null); setIsFreightModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(PlusCircle), '+ Flete'),
-                  h('button', { key: 'btn-add-exp', onClick: () => { setEditingId(null); setIsExpenseModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(Camera), '+ Gasto')
-                ] : h('span', { className: 'text-[11px] text-slate-400 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 font-bold' }, '🔒 Modo Consulta')
+                isAdmin ? h(Fragment, null,
+                  h('button', { onClick: () => { setEditingId(null); setIsFreightModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(PlusCircle), '+ Flete'),
+                  h('button', { onClick: () => { setEditingId(null); setIsExpenseModalOpen(true); }, className: 'flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4.5 py-2.5 rounded-xl shadow transition' }, h(Camera), '+ Gasto')
+                ) : h('span', { className: 'text-[11px] text-slate-400 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 font-bold' }, '🔒 Modo Consulta')
               )
             ),
 
@@ -541,26 +542,3 @@
               ),
               h('form', { onSubmit: handleSaveKeys, className: 'space-y-3.5 text-xs' },
                 DEFAULT_DEVICES.map(dev => h('div', { key: dev.id, className: 'bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1' },
-                  h('span', { className: 'font-extrabold text-slate-200 block' }, dev.name),
-                  h('p', { className: 'text-[10px] text-slate-400 font-bold pb-1.5' }, dev.role),
-                  h('div', { className: 'flex items-center gap-2' },
-                    h('label', { className: 'text-slate-400 text-[11px] font-bold' }, 'Clave / PIN:'),
-                    h('input', {
-                      type: 'text', maxLength: 10, required: true,
-                      value: editedPins[dev.id] || '',
-                      onChange: (e) => setEditedPins({ ...editedPins, [dev.id]: e.target.value }),
-                      className: 'bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-black text-center w-28 focus:outline-none focus:border-emerald-500'
-                    })
-                  )
-                )),
-                h('div', { className: 'flex justify-end gap-2 pt-3.5 border-t border-slate-800' },
-                  h('button', { type: 'button', onClick: () => setIsKeysModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 font-extrabold' }, 'Cancelar'),
-                  h('button', { type: 'submit', className: 'px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl shadow' }, 'Guardar Claves')
-                )
-              )
-            )
-          ),
-
-          // MODAL FLETE
-          isFreightModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
-            h('div', { className:

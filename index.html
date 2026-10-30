@@ -229,7 +229,7 @@
 
       const formatMoney = (val) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(val);
 
-      // PROCESAMIENTO Y COMPRESIÓN DE FOTO DE BOLETA
+      // PROCESAMIENTO CON RESET DE INPUT FILE PARA PERMITIR DISPAROS CONSECUTIVOS
       const handleImageCapture = (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
@@ -259,6 +259,7 @@
 
             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
             setExpenseForm(prev => ({ ...prev, receiptImage: compressedBase64 }));
+            e.target.value = ''; // Reset buffer
           };
         };
         reader.readAsDataURL(file);
@@ -466,4 +467,203 @@
             h('div', { className: 'space-y-2.5' },
               monthlyMovements.length === 0 ? h('p', { className: 'text-xs text-slate-500 py-6 text-center font-bold' }, 'No existen movimientos en el mes seleccionado.') :
               monthlyMovements.map(item => {
-                let
+                let fleteAsociado = null;
+                if (item.type === 'expense' && item.fleteId) {
+                  fleteAsociado = movements.find(f => f.id === item.fleteId);
+                }
+
+                return h('div', { key: item.id, className: 'bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs gap-3 shadow' },
+                  h('div', { className: 'space-y-1' },
+                    h('div', { className: 'flex items-center gap-2 flex-wrap' },
+                      h('p', { className: `font-extrabold text-[13.5px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, item.type === 'freight' ? `Flete: ${item.client}` : `Gasto: ${item.category}`),
+                      
+                      item.type === 'freight' && (
+                        isAdmin ? h('select', {
+                          value: item.invoicingStatus,
+                          onChange: (e) => handleUpdateInvoicingStatus(item.id, e.target.value),
+                          className: 'bg-slate-800 text-[10px] font-bold text-slate-200 border border-slate-700 rounded px-2 py-0.5 focus:outline-none cursor-pointer'
+                        },
+                          h('option', { value: 'No Facturado' }, 'No Facturado'),
+                          h('option', { value: 'Factura Pagada' }, 'Factura Pagada'),
+                          h('option', { value: 'Factura Pendiente' }, 'Factura Pendiente')
+                        ) : h('span', { className: `text-[8.5px] font-black px-2 py-0.5 rounded uppercase ${item.invoicingStatus === 'No Facturado' ? 'bg-slate-800 text-slate-300' : item.invoicingStatus === 'Factura Pagada' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}` }, item.invoicingStatus)
+                      )
+                    ),
+                    h('p', { className: 'text-slate-300 text-[11px] font-semibold' }, item.type === 'freight' ? `${item.origin} ➔ ${item.destination}` : item.description),
+                    
+                    h('div', { className: 'flex items-center gap-2 flex-wrap pt-0.5' },
+                      fleteAsociado && h('div', { className: 'text-[10px] text-amber-300/90 font-bold bg-amber-950/40 border border-amber-800/50 px-2 py-0.5 rounded inline-block' },
+                        h(LinkIcon),
+                        `Asociado a: ${fleteAsociado.client}`
+                      ),
+                      
+                      item.receiptImage && h('button', {
+                        onClick: () => setViewingReceiptUrl(item.receiptImage),
+                        className: 'text-[10px] text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-800/50 hover:bg-emerald-900/60 px-2 py-0.5 rounded transition'
+                      }, h(Eye), 'Ver Boleta')
+                    ),
+
+                    h('span', { className: 'text-slate-400 text-[10px] font-semibold block pt-1' }, `${item.date} • ${item.createdBy}`)
+                  ),
+                  h('div', { className: 'flex items-center gap-2 shrink-0' },
+                    h('span', { className: `font-black text-[14px] ${item.type === 'freight' ? 'text-emerald-400' : 'text-rose-400'}` }, `${item.type === 'freight' ? '+' : '-'}${formatMoney(item.amount)}`),
+                    
+                    isAdmin && h('button', { onClick: () => handleStartEdit(item), className: 'bg-slate-800 hover:bg-slate-700 text-amber-400 p-2 rounded-lg border border-slate-700 transition-all ml-1', title: 'Editar Registro' }, h(Edit)),
+                    isAdmin && h('button', { onClick: () => handleDelete(item.id), className: 'bg-slate-800 hover:bg-slate-700 text-rose-400 p-2 rounded-lg border border-slate-700 transition-all', title: 'Eliminar Registro' }, h(Trash2))
+                  )
+                );
+              })
+            )
+          )
+        ),
+
+        // MODAL CONFIGURACIÓN DE CLAVES (ADMIN)
+        isKeysModalOpen && h('div', { className: 'fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2.5' },
+              h('h3', { className: 'font-black text-sm text-white flex items-center gap-2' }, h(Shield), 'Administrar Claves de Acceso (PIN)'),
+              h('button', { onClick: () => setIsKeysModalOpen(false), className: 'text-slate-400 hover:text-white p-1 rounded-lg' }, h(X))
+            ),
+            h('form', { onSubmit: handleSaveKeys, className: 'space-y-3.5 text-xs' },
+              DEFAULT_DEVICES.map(dev => h('div', { key: dev.id, className: 'bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1' },
+                h('span', { className: 'font-extrabold text-slate-200 block' }, dev.name),
+                h('p', { className: 'text-[10px] text-slate-400 font-bold pb-1.5' }, dev.role),
+                h('div', { className: 'flex items-center gap-2' },
+                  h('label', { className: 'text-slate-400 text-[11px] font-bold' }, 'Clave / PIN:'),
+                  h('input', {
+                    type: 'text', maxLength: 10, required: true,
+                    value: editedPins[dev.id] || '',
+                    onChange: (e) => setEditedPins({ ...editedPins, [dev.id]: e.target.value }),
+                    className: 'bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-emerald-400 font-black text-center w-28 focus:outline-none focus:border-emerald-500'
+                  })
+                )
+              )),
+              h('div', { className: 'flex justify-end gap-2 pt-3.5 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => setIsKeysModalOpen(false), className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 font-extrabold' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl shadow' }, 'Guardar Claves')
+              )
+            )
+          )
+        ),
+
+        // MODAL FLETE
+        isFreightModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl' },
+            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, editingId ? 'Editar Flete' : 'Ingresar Nuevo Flete'),
+            h('form', { onSubmit: handleSaveFreight, className: 'space-y-3.5 text-xs' },
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Cliente *'), h('input', { type: 'text', required: true, value: freightForm.client, onChange: e => setFreightForm({ ...freightForm, client: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-emerald-500' })),
+              h('div', { className: 'grid grid-cols-2 gap-2.5' },
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Origen'), h('input', { type: 'text', value: freightForm.origin, onChange: e => setFreightForm({ ...freightForm, origin: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500' })),
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Destino'), h('input', { type: 'text', value: freightForm.destination, onChange: e => setFreightForm({ ...freightForm, destination: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500' }))
+              ),
+              h('div', { className: 'grid grid-cols-2 gap-2.5' },
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Monto CLP *'), h('input', { type: 'number', required: true, value: freightForm.amount, onChange: e => setFreightForm({ ...freightForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-emerald-400 font-black focus:outline-none focus:border-emerald-500' })),
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'), h('input', { type: 'date', value: freightForm.date, onChange: e => setFreightForm({ ...freightForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-emerald-500' }))
+              ),
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Estado Facturación'), h('select', { value: freightForm.invoicingStatus, onChange: e => setFreightForm({ ...freightForm, invoicingStatus: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold focus:outline-none focus:border-emerald-500' }, ['No Facturado', 'Factura Pagada', 'Factura Pendiente'].map(c => h('option', { key: c, value: c }, c)))),
+              h('div', { className: 'flex justify-end gap-2 pt-4 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => { setIsFreightModalOpen(false); setEditingId(null); }, className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl shadow' }, editingId ? 'Guardar Cambios' : 'Guardar Flete')
+              )
+            )
+          )
+        ),
+
+        // MODAL GASTO (CON BOTÓN DE TOMAR FOTO DEDICADO)
+        isExpenseModalOpen && h('div', { className: 'fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto' },
+            h('h3', { className: 'font-black text-sm text-white border-b border-slate-800 pb-2' }, editingId ? 'Editar Gasto' : 'Ingresar Gasto Operativo'),
+            h('form', { onSubmit: handleSaveExpense, className: 'space-y-3.5 text-xs' },
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Categoría'), h('select', { value: expenseForm.category, onChange: e => setExpenseForm({ ...expenseForm, category: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-extrabold focus:outline-none focus:border-rose-500' }, ['Combustible', 'Viáticos', 'Peajes', 'Reparaciones'].map(c => h('option', { key: c, value: c }, c)))),
+              h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Descripción *'), h('input', { type: 'text', required: true, value: expenseForm.description, onChange: e => setExpenseForm({ ...expenseForm, description: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-rose-500', placeholder: 'Ej: Diésel Copec' })),
+              
+              h('div', null, 
+                h('label', { className: 'text-slate-400 block mb-1 font-bold flex items-center justify-between' }, 
+                  h('span', null, 'Asociar a Flete del Mes'),
+                  h('span', { className: 'text-[10px] text-amber-400 font-normal' }, 'Opcional')
+                ),
+                h('select', { value: expenseForm.fleteId, onChange: e => setExpenseForm({ ...expenseForm, fleteId: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-amber-300 font-bold focus:outline-none focus:border-amber-500 cursor-pointer' },
+                  h('option', { value: '' }, '-- Gasto General (Sin Flete Específico) --'),
+                  availableFreights.map(f => h('option', { key: f.id, value: f.id }, `${f.client} (${f.origin} ➔ ${f.destination})`))
+                )
+              ),
+
+              // SECCIÓN DE ADJUNTO DE BOLETA CON BOTÓN TOMAR FOTO DEDICADO
+              h('div', { className: 'bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5' },
+                h('label', { className: 'text-slate-300 block font-bold text-xs flex items-center justify-between' },
+                  h('span', { className: 'flex items-center gap-1.5' }, h(Camera), 'Respaldar Boleta de Gasto'),
+                  h('span', { className: 'text-[10px] text-slate-500 font-normal' }, 'Opcional')
+                ),
+
+                // INPUTS OCULTOS
+                h('input', {
+                  type: 'file', accept: 'image/*', capture: 'environment', ref: cameraInputRef,
+                  onChange: handleImageCapture, className: 'hidden'
+                }),
+                h('input', {
+                  type: 'file', accept: 'image/*', ref: galleryInputRef,
+                  onChange: handleImageCapture, className: 'hidden'
+                }),
+
+                // BOTONES VISIBLES
+                h('div', { className: 'grid grid-cols-2 gap-2' },
+                  h('button', {
+                    type: 'button',
+                    onClick: () => cameraInputRef.current && cameraInputRef.current.click(),
+                    className: 'bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 text-[11px] shadow transition'
+                  }, h(Camera), '📸 Tomar Foto'),
+                  h('button', {
+                    type: 'button',
+                    onClick: () => galleryInputRef.current && galleryInputRef.current.click(),
+                    className: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 text-[11px] transition'
+                  }, '🖼️ Subir Galería')
+                ),
+
+                expenseForm.receiptImage && h('div', { className: 'relative mt-2 bg-slate-900 p-2 rounded-lg border border-slate-800 text-center' },
+                  h('img', { src: expenseForm.receiptImage, alt: 'Vista previa boleta', className: 'h-28 w-auto rounded-lg border border-slate-700 object-cover mx-auto' }),
+                  h('button', {
+                    type: 'button',
+                    onClick: () => setExpenseForm(prev => ({ ...prev, receiptImage: null })),
+                    className: 'mt-1.5 text-[10px] text-rose-400 hover:text-rose-300 font-bold underline inline-block'
+                  }, 'Eliminar Foto Adjunta')
+                )
+              ),
+
+              h('div', { className: 'grid grid-cols-2 gap-2.5' },
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1 font-bold' }, 'Monto CLP *'), h('input', { type: 'number', required: true, value: expenseForm.amount, onChange: e => setExpenseForm({ ...expenseForm, amount: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-rose-400 font-black focus:outline-none focus:border-rose-500' })),
+                h('div', null, h('label', { className: 'text-slate-400 block mb-1' }, 'Fecha'), h('input', { type: 'date', value: expenseForm.date, onChange: e => setExpenseForm({ ...expenseForm, date: e.target.value }), className: 'w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-rose-500' }))
+              ),
+              h('div', { className: 'flex justify-end gap-2 pt-4 border-t border-slate-800' },
+                h('button', { type: 'button', onClick: () => { setIsExpenseModalOpen(false); setEditingId(null); }, className: 'px-4 py-2.5 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700' }, 'Cancelar'),
+                h('button', { type: 'submit', className: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl shadow' }, editingId ? 'Guardar Cambios' : 'Guardar Gasto')
+              )
+            )
+          )
+        ),
+
+        // MODAL VISOR BOLETA
+        viewingReceiptUrl && h('div', { className: 'fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50' },
+          h('div', { className: 'bg-slate-900 border border-slate-800 p-4 rounded-2xl max-w-lg w-full space-y-3 text-center shadow-2xl' },
+            h('div', { className: 'flex justify-between items-center border-b border-slate-800 pb-2' },
+              h('h3', { className: 'text-xs font-black text-white uppercase tracking-wider' }, 'Comprobante / Boleta Adjunta'),
+              h('button', { onClick: () => setViewingReceiptUrl(null), className: 'text-slate-400 hover:text-white font-bold p-1' }, '✕')
+            ),
+            h('img', { src: viewingReceiptUrl, alt: 'Boleta de respaldo', className: 'max-h-[70vh] w-auto mx-auto rounded-xl border border-slate-800 shadow' }),
+            h('button', { onClick: () => setViewingReceiptUrl(null), className: 'px-5 py-2 bg-slate-800 text-white font-bold text-xs rounded-xl hover:bg-slate-700' }, 'Cerrar')
+          )
+        )
+      );
+    }
+
+    // MOUNT
+    document.addEventListener('DOMContentLoaded', function() {
+      const rootNode = document.getElementById('root');
+      if (typeof ReactDOM.createRoot === 'function') {
+        ReactDOM.createRoot(rootNode).render(h(App));
+      } else {
+        ReactDOM.render(h(App), rootNode);
+      }
+    });
+  </script>
+</body>
+</html>
